@@ -1,0 +1,246 @@
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { Stack } from 'expo-router';
+import { User, Heart, FileText, Settings, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
+
+export default function ProfileScreen() {
+  const menuItems = [
+    {
+      icon: User,
+      label: 'Thông tin cá nhân',
+      onPress: () => console.log('Profile'),
+    },
+    {
+      icon: Heart,
+      label: 'Tin đã lưu',
+      count: 5,
+      onPress: () => console.log('Favorites'),
+    },
+    {
+      icon: FileText,
+      label: 'Lịch sử giao dịch',
+      onPress: () => console.log('History'),
+    },
+    {
+      icon: Settings,
+      label: 'Cài đặt',
+      onPress: () => console.log('Settings'),
+    },
+    {
+      icon: HelpCircle,
+      label: 'Trợ giúp & Hỗ trợ',
+      onPress: () => console.log('Help'),
+    },
+  ];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen 
+        options={{
+          headerTitle: 'Tài khoản',
+          headerTitleStyle: { fontWeight: '700' as const },
+        }} 
+      />
+
+      <ScrollView style={styles.content}>
+        <View style={styles.profileHeader}>
+          <View style={styles.avatar}>
+            <User size={40} color="#EF4444" />
+          </View>
+          <Text style={styles.name}>Nguyễn Văn A</Text>
+          <Text style={styles.phone}>0901234567</Text>
+        </View>
+
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>3</Text>
+            <Text style={styles.statLabel}>Đang đăng</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>1</Text>
+            <Text style={styles.statLabel}>VIP</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>1.2K</Text>
+            <Text style={styles.statLabel}>Lượt xem</Text>
+          </View>
+        </View>
+
+        <View style={styles.menuContainer}>
+          {menuItems.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.menuItem}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <Icon size={22} color="#EF4444" />
+                  </View>
+                  <Text style={styles.menuLabel}>{item.label}</Text>
+                </View>
+                <View style={styles.menuRight}>
+                  {item.count !== undefined && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{item.count}</Text>
+                    </View>
+                  )}
+                  <ChevronRight size={20} color="#9CA3AF" />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7}>
+          <LogOut size={20} color="#EF4444" />
+          <Text style={styles.logoutText}>Đăng xuất</Text>
+        </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>BinhThanhLand v1.0.0</Text>
+          <Text style={styles.footerSubtext}>© 2024 BinhThanhLand. All rights reserved.</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  content: {
+    flex: 1,
+  },
+  profileHeader: {
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    paddingVertical: 32,
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#111827',
+    marginBottom: 4,
+  },
+  phone: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 20,
+    marginBottom: 16,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: '#EF4444',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  menuContainer: {
+    backgroundColor: '#FFFFFF',
+    marginBottom: 16,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  menuLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  menuLabel: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '500' as const,
+  },
+  menuRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  badge: {
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600' as const,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    gap: 8,
+    marginBottom: 16,
+  },
+  logoutText: {
+    fontSize: 15,
+    color: '#EF4444',
+    fontWeight: '600' as const,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  footerText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+  footerSubtext: {
+    fontSize: 11,
+    color: '#D1D5DB',
+  },
+});

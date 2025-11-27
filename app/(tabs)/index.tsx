@@ -1,98 +1,149 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Search } from 'lucide-react-native';
+import { useApp } from '@/contexts/AppContext';
+import { Banner } from '@/components/Banner';
+import { CategoryCard } from '@/components/CategoryCard';
+import { PropertyCard } from '@/components/PropertyCard';
+import { mockBanners, mockCategories } from '@/mocks/data';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const { getVIPProperties, getActiveProperties } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const vipProperties = getVIPProperties;
+  const allProperties = getActiveProperties;
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const handleCategoryPress = (category: any) => {
+    router.push({
+      pathname: '/search',
+      params: {
+        transactionType: category.transactionType,
+        propertyType: category.propertyType || '',
+      },
+    } as any);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen 
+        options={{
+          headerTitleStyle: { fontWeight: '700' as const, fontSize: 20, color: '#EF4444' },
+          headerRight: () => (
+            <TouchableOpacity onPress={() => router.push('/search' as any)} style={styles.searchButton}>
+              <Search size={24} color="#111827" />
+            </TouchableOpacity>
+          ),
+        }} 
+      />
+      
+      <FlatList
+        data={allProperties}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <PropertyCard property={item} />}
+        ListHeaderComponent={() => (
+          <View>
+            <Banner banners={mockBanners} />
+            
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Danh mục</Text>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesContainer}
+              >
+                {mockCategories.map((category) => (
+                  <CategoryCard 
+                    key={category.id} 
+                    category={category} 
+                    onPress={() => handleCategoryPress(category)}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+            
+            {vipProperties.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Tin VIP nổi bật</Text>
+                  <TouchableOpacity>
+                    <Text style={styles.seeAll}>Xem tất cả</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.vipContainer}
+                >
+                  {vipProperties.slice(0, 5).map((property) => (
+                    <View key={property.id} style={styles.vipCard}>
+                      <PropertyCard property={property} />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+            
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Tin đăng mới nhất</Text>
+            </View>
+          </View>
+        )}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        contentContainerStyle={styles.listContent}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  searchButton: {
+    marginRight: 16,
+  },
+  listContent: {
+    paddingBottom: 16,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#111827',
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  seeAll: {
+    fontSize: 14,
+    color: '#EF4444',
+    fontWeight: '600' as const,
+  },
+  categoriesContainer: {
+    paddingHorizontal: 16,
+  },
+  vipContainer: {
+    paddingHorizontal: 0,
+  },
+  vipCard: {
+    marginLeft: 0,
   },
 });
