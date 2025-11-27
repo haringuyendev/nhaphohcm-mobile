@@ -38,7 +38,11 @@ export default function PostScreen() {
 
   const [modalData, setModalData] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalField, setModalField] = useState("");
+  const [modalField, setModalField] = useState({
+    title: "",
+    value: "",
+    
+  });
 
   const [price, setPrice] = useState('');
   const [priceUnit, setPriceUnit] = useState<'million'|'billion'>('billion');
@@ -55,27 +59,27 @@ export default function PostScreen() {
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
 
-  const openModal = (field: string) => {
+  const openModal = (field: {title:string; value:string}) => {
     setModalField(field);
 
-    if (field === 'province') setModalData(provinces);
-    if (field === 'district') setModalData(districtsByProvince[province] || []);
-    if (field === 'ward') setModalData(wardsByDistrict[district] || []);
+    if (field.value === 'province') setModalData(provinces);
+    if (field.value === 'district') setModalData(districtsByProvince[province] || []);
+    if (field.value === 'ward') setModalData(wardsByDistrict[district] || []);
 
     setModalVisible(true);
   };
 
   const handleSelect = (item: string) => {
-    if (modalField === 'province') {
+    if (modalField.value === 'province') {
       setProvince(item);
       setDistrict('');
       setWard('');
     }
-    if (modalField === 'district') {
+    if (modalField.value === 'district') {
       setDistrict(item);
       setWard('');
     }
-    if (modalField === 'ward') {
+    if (modalField.value === 'ward') {
       setWard(item);
     }
     setModalVisible(false);
@@ -233,7 +237,7 @@ export default function PostScreen() {
         <DropdownField
           value={province}
           placeholder="Chọn Tỉnh/Thành phố"
-          onPress={() => openModal('province')}
+          onPress={() => openModal({ title: 'Tỉnh/Thành phố', value: province })}
         />
 
         <Text style={styles.label}>Quận/Huyện *</Text>
@@ -241,7 +245,7 @@ export default function PostScreen() {
           value={district}
           placeholder="Chọn Quận/Huyện"
           disabled={!province}
-          onPress={() => province && openModal('district')}
+          onPress={() => province && openModal({ title: 'Quận/Huyện', value: district })}
         />
 
         <Text style={styles.label}>Phường/Xã *</Text>
@@ -249,7 +253,7 @@ export default function PostScreen() {
           value={ward}
           placeholder="Chọn Phường/Xã"
           disabled={!district}
-          onPress={() => district && openModal('ward')}
+          onPress={() => district && openModal({ title: 'Phường/Xã', value: ward })}
         />
 
         <Text style={styles.label}>Tên đường</Text>
@@ -496,7 +500,7 @@ export default function PostScreen() {
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Text style={styles.modalClose}>Hủy</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Chọn {modalField}</Text>
+            <Text style={styles.modalTitle}>Chọn {modalField.title}</Text>
             <View style={{ width: 40 }} />
           </View>
 
