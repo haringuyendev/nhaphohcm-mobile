@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
 import { Stack } from 'expo-router';
-import { SlidersHorizontal, X } from 'lucide-react-native';
+import { SlidersHorizontal } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
 import { PropertyCard } from '@/components/PropertyCard';
 import { SearchFilters } from '@/types/property';
-import { provinces, districtsByProvince } from '@/mocks/data';
+import FiltersPanel from '@/components/search/FiltersPanel';
 
 export default function SearchScreen() {
   const { searchProperties } = useApp();
@@ -67,136 +67,6 @@ export default function SearchScreen() {
         }
       />
     </SafeAreaView>
-  );
-}
-
-function FiltersPanel({ filters, onApply, onClose }: { 
-  filters: SearchFilters; 
-  onApply: (filters: SearchFilters) => void;
-  onClose: () => void;
-}) {
-  const [localFilters, setLocalFilters] = useState<SearchFilters>(filters);
-
-  return (
-    <View style={styles.filtersPanel}>
-      <View style={styles.filterHeader}>
-        <Text style={styles.filterTitle}>Bộ lọc</Text>
-        <TouchableOpacity onPress={onClose}>
-          <X size={24} color="#111827" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.filterContent}>
-        <View style={styles.filterGroup}>
-          <Text style={styles.filterLabel}>Loại giao dịch</Text>
-          <View style={styles.filterRow}>
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                localFilters.transactionType === 'sale' && styles.filterChipActive,
-              ]}
-              onPress={() => setLocalFilters({ ...localFilters, transactionType: 'sale' })}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  localFilters.transactionType === 'sale' && styles.filterChipTextActive,
-                ]}
-              >
-                Bán
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                localFilters.transactionType === 'rent' && styles.filterChipActive,
-              ]}
-              onPress={() => setLocalFilters({ ...localFilters, transactionType: 'rent' })}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  localFilters.transactionType === 'rent' && styles.filterChipTextActive,
-                ]}
-              >
-                Cho thuê
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.filterGroup}>
-          <Text style={styles.filterLabel}>Tỉnh/Thành phố</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.filterRow}>
-              {provinces.map((province) => (
-                <TouchableOpacity
-                  key={province}
-                  style={[
-                    styles.filterChip,
-                    localFilters.province === province && styles.filterChipActive,
-                  ]}
-                  onPress={() => setLocalFilters({ ...localFilters, province, district: undefined })}
-                >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      localFilters.province === province && styles.filterChipTextActive,
-                    ]}
-                  >
-                    {province}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        {localFilters.province && districtsByProvince[localFilters.province] && (
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Quận/Huyện</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.filterRow}>
-                {districtsByProvince[localFilters.province].map((district) => (
-                  <TouchableOpacity
-                    key={district}
-                    style={[
-                      styles.filterChip,
-                      localFilters.district === district && styles.filterChipActive,
-                    ]}
-                    onPress={() => setLocalFilters({ ...localFilters, district })}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        localFilters.district === district && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {district}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        )}
-      </ScrollView>
-
-      <View style={styles.filterActions}>
-        <TouchableOpacity 
-          style={styles.clearButton} 
-          onPress={() => setLocalFilters({})}
-        >
-          <Text style={styles.clearButtonText}>Xóa bộ lọc</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.applyButton} 
-          onPress={() => onApply(localFilters)}
-        >
-          <Text style={styles.applyButtonText}>Áp dụng</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
   );
 }
 
@@ -292,46 +162,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-  },
-  filterChipActive: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
-  },
-  filterChipText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500' as const,
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-  },
-  filterActions: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-  },
-  clearButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#374151',
-  },
-  applyButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-  },
-  applyButtonText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
   },
 });
