@@ -12,9 +12,9 @@ const queryClient = new QueryClient();
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Quay lại" }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false, headerTitle: 'BinhThanhLand', headerTitleStyle: { fontWeight: '700' as const, fontSize: 20, color: '#EF4444' }, }} />
-      <Stack.Screen name="property/[id]" options={{ headerShown: true, headerTitle: 'Chi tiết bất động sản' }} />
-      <Stack.Screen name="community/[id]" options={{ headerShown: true, headerTitle: 'Chi tiết cộng đồng' }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="property/[id]" options={{ headerShown: true, headerTitle:''}} />
+      <Stack.Screen name="community/[id]" options={{ headerShown: true, headerTitle:''}} />
     </Stack>
   );
 }

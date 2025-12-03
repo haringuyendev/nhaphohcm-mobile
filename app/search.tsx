@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { Stack } from 'expo-router';
 import { SlidersHorizontal } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
 import { PropertyCard } from '@/components/PropertyCard';
 import { SearchFilters } from '@/types/property';
 import FiltersPanel from '@/components/search/FiltersPanel';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SearchScreen() {
   const { searchProperties } = useApp();
@@ -23,7 +24,7 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen 
         options={{
           headerTitle: 'Tìm kiếm',

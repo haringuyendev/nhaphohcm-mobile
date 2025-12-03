@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Dimensions, FlatList, SafeAreaView } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Dimensions, FlatList } from 'react-native';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Heart, Phone, MessageCircle, MapPin, Maximize, Bed, Bath, Compass, Calendar, Eye, Share2 } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
 import { PropertyCard } from '@/components/PropertyCard';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -32,7 +33,7 @@ export default function PropertyDetailScreen() {
 
     if (!property) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>Không tìm thấy tin đăng</Text>
                 </View>
@@ -52,15 +53,15 @@ export default function PropertyDetailScreen() {
     };
 
     const handleMessage = () => {
-        Linking.openURL(`sms:${property.contactPhone}`);
+        router.push('/messages' as any);
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['left', 'right']}>
             <Stack.Screen
                 options={{
-                    headerTitle: '',
-                    headerTransparent: true,
+                    headerTitle: property.title,
+                    headerTransparent: false,
                     headerRight: () => (
                         <View style={styles.headerActions}>
                             <TouchableOpacity style={styles.headerButton}>
@@ -80,7 +81,6 @@ export default function PropertyDetailScreen() {
                     ),
                 }}
             />
-
             <ScrollView style={styles.content}>
                 <View style={styles.imageSection}>
                     <FlatList

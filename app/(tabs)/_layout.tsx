@@ -1,11 +1,9 @@
-import { Tabs, useRouter } from "expo-router";
-import { Home, Search, FileText, User, Users, Plus } from "lucide-react-native";
+import { Tabs } from "expo-router";
+import { Home, FileText, User, Users, PlusCircle } from "lucide-react-native";
 import React from "react";
-import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { View } from "react-native";
 
 export default function TabLayout() {
-  const router = useRouter();
-
   return (
     <>
       <Tabs
@@ -17,7 +15,6 @@ export default function TabLayout() {
             height: 60,
             paddingBottom: 8,
             paddingTop: 8,
-            marginBottom: 24,
           },
           tabBarLabelStyle: {
             fontSize: 12,
@@ -25,36 +22,54 @@ export default function TabLayout() {
           },
         }}
       >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Trang chủ",
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: "Tìm kiếm",
-          tabBarIcon: ({ color, size }) => <Search color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="community"
-        options={{
-          headerShown:false,
-          title: "Cộng đồng",
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
-        }}
-      />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Trang chủ",
+            tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          }}
+        />
 
-      <Tabs.Screen
-        name="myposts"
-        options={{
-          title: "Tin của tôi",
-          tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
-        }}
-      />
+        <Tabs.Screen
+          name="community"
+          options={{
+            title: "Cộng đồng",
+            tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
+          }}
+        />
+        <Tabs.Screen
+          name="post"
+          options={{
+            title: "Đăng tin",
+            headerTitleStyle: { fontWeight: '700' as const, fontSize: 20, color: '#EF4444' },
+            tabBarIcon: ({ color }) => (
+              <View style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#EF4444',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 20,
+                shadowColor: '#EF4444',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
+              }}>
+                <PlusCircle color="#FFFFFF" size={28} />
+              </View>
+            ),
+            tabBarLabel: () => null,
+          }}
+        />
+        <Tabs.Screen
+          name="myposts"
+          options={{
+            title: "Tin của tôi",
+            tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
+          }}
+        />
         <Tabs.Screen
           name="profile"
           options={{
@@ -62,48 +77,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
           }}
         />
-        <Tabs.Screen
-          name="post"
-          options={{
-            href: null,
-          }}
-        />
       </Tabs>
-
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => router.push('/post' as any)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.floatingButtonInner}>
-          <Plus size={28} color="#FFFFFF" strokeWidth={3} />
-        </View>
-      </TouchableOpacity>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  floatingButton: {
-    position: 'absolute',
-    right: 20,
-    bottom: Platform.OS === 'ios' ? 95 : 85,
-    zIndex: 1000,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  floatingButtonInner: {
-    width: 50,
-    height: 50,
-    borderRadius: 30,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

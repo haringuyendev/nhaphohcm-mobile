@@ -1,12 +1,13 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { Search } from 'lucide-react-native';
-import { useApp } from '@/contexts/AppContext';
 import { Banner } from '@/components/Banner';
 import { CategoryCard } from '@/components/CategoryCard';
+import { Header } from '@/components/Headers/Header';
 import { PropertyCard } from '@/components/PropertyCard';
+import { useApp } from '@/contexts/AppContext';
 import { mockBanners, mockCategories } from '@/mocks/data';
+import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -32,18 +33,13 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen 
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <Stack.Screen
         options={{
-          headerTitleStyle: { fontWeight: '700' as const, fontSize: 20, color: '#EF4444' },
-          headerRight: () => (
-            <TouchableOpacity onPress={() => router.push('/search' as any)} style={styles.searchButton}>
-              <Search size={24} color="#111827" />
-            </TouchableOpacity>
-          ),
-        }} 
+          headerShown: false,
+        }}
       />
-      
+      <Header />
       <FlatList
         data={allProperties}
         keyExtractor={(item) => item.id}
@@ -51,24 +47,24 @@ export default function HomeScreen() {
         ListHeaderComponent={() => (
           <View>
             <Banner banners={mockBanners} />
-            
+
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Danh mục</Text>
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.categoriesContainer}
               >
                 {mockCategories.map((category) => (
-                  <CategoryCard 
-                    key={category.id} 
-                    category={category} 
+                  <CategoryCard
+                    key={category.id}
+                    category={category}
                     onPress={() => handleCategoryPress(category)}
                   />
                 ))}
               </ScrollView>
             </View>
-            
+
             {vipProperties.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -77,8 +73,8 @@ export default function HomeScreen() {
                     <Text style={styles.seeAll}>Xem tất cả</Text>
                   </TouchableOpacity>
                 </View>
-                <ScrollView 
-                  horizontal 
+                <ScrollView
+                  horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.vipContainer}
                 >
@@ -90,7 +86,7 @@ export default function HomeScreen() {
                 </ScrollView>
               </View>
             )}
-            
+
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Tin đăng mới nhất</Text>
             </View>

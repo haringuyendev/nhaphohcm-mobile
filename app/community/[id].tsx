@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Users, UserPlus, UserMinus } from 'lucide-react-native';
+import { Users, UserPlus, UserMinus } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
 import { PostCard } from '@/components/PostCard';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CommunityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,7 +17,7 @@ export default function CommunityDetailScreen() {
 
   if (!community) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Không tìm thấy cộng đồng</Text>
@@ -60,7 +61,7 @@ export default function CommunityDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}

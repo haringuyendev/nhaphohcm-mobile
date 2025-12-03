@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Share as RNShare } from 'react-native';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
-import { Post } from '@/types/community';
 import { useApp } from '@/contexts/AppContext';
+import { Community, Post } from '@/types/community';
 
 interface PostCardProps {
   post: Post;
+  community?: Community
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, community }: PostCardProps) {
   const { togglePostLike, incrementShareCount } = useApp();
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -25,7 +26,7 @@ export function PostCard({ post }: PostCardProps) {
   const handleShare = async () => {
     try {
       const result = await RNShare.share({
-        message: `${post.content}\n\n- ${post.userName}`,
+        message: `${post.content}\n\n`,
         title: 'Chia sẻ bài viết',
       });
 
@@ -55,85 +56,85 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <Image source={{ uri: post.userAvatar }} style={styles.avatar} />
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{post.userName}</Text>
-          <Text style={styles.timestamp}>{getTimeAgo(post.createdAt)}</Text>
+      <View style={styles.groupHeader}>
+        <View style={{ position: 'relative' }}>
+
+          {/* Avatar chính: nếu có cộng đồng thì dùng ảnh cộng đồng, nếu không dùng avatar user */}
+          <Image
+            source={{ uri: community?.coverImage ?? post?.userAvatar }}
+            style={styles.groupAvatar}
+          />
+
+          {/* Avatar user chồng lên — chỉ hiển thị nếu có community */}
+          {community && (
+            <Image
+              source={{ uri: post?.userAvatar }}
+              style={styles.overlayUserAvatar}
+            />
+          )}
+        </View>
+
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={styles.groupName}>
+            {community?.name ?? post?.userName}
+          </Text>
+
+          {/* Nếu có group → hiển thị người đăng + thời gian  
+        Nếu không có group → chỉ hiển thị thời gian */}
+          <Text style={styles.postAuthor}>
+            {community ? `${post?.userName} · ${getTimeAgo(post.createdAt)}`
+              : getTimeAgo(post.createdAt)}
+          </Text>
         </View>
       </View>
 
+      {/* Nội dung bài viết */}
       <Text style={styles.content}>{post.content}</Text>
 
+      {/* Hình ảnh */}
       {post.images && post.images.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
           style={styles.imagesContainer}
-          contentContainerStyle={styles.imagesContent}
-        >
-          {post.images.map((imageUri, index) => (
+          contentContainerStyle={styles.imagesContent}>
+          {post.images.map((uri, index) => (
             <Image
               key={index}
-              source={{ uri: imageUri }}
-              style={[
-                styles.postImage,
-                post.images!.length === 1 && styles.singleImage,
-              ]}
+              source={{ uri }}
+              style={[styles.postImage, post.images!.length === 1 && styles.singleImage]}
             />
           ))}
         </ScrollView>
       )}
 
+      {/* Stats */}
       <View style={styles.stats}>
         <Text style={styles.statText}>
           {post.likeCount > 0 && `${post.likeCount.toLocaleString('vi-VN')} lượt thích`}
         </Text>
+
         <View style={styles.rightStats}>
           {post.commentCount > 0 && (
-            <Text style={styles.statText}>
-              {post.commentCount.toLocaleString('vi-VN')} bình luận
-            </Text>
+            <Text style={styles.statText}>{post.commentCount} bình luận</Text>
           )}
           {post.shareCount > 0 && (
-            <Text style={styles.statText}>
-              {post.shareCount.toLocaleString('vi-VN')} chia sẻ
-            </Text>
+            <Text style={styles.statText}>{post.shareCount} chia sẻ</Text>
           )}
         </View>
       </View>
 
+      {/* Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleLike}
-          activeOpacity={0.7}
-        >
-          <Heart
-            size={22}
-            color={post.isLiked ? '#EF4444' : '#6B7280'}
-            fill={post.isLiked ? '#EF4444' : 'transparent'}
-            style={isAnimating && styles.animatedIcon}
-          />
-          <Text style={[styles.actionText, post.isLiked && styles.likedText]}>
-            Thích
-          </Text>
+        <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+          <Heart size={22} color={post.isLiked ? '#EF4444' : '#6B7280'} fill={post.isLiked ? '#EF4444' : 'transparent'} />
+          <Text style={[styles.actionText, post.isLiked && styles.likedText]}>Thích</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleComment}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={handleComment}>
           <MessageCircle size={22} color="#6B7280" />
           <Text style={styles.actionText}>Bình luận</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleShare}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
           <Share2 size={22} color="#6B7280" />
           <Text style={styles.actionText}>Chia sẻ</Text>
         </TouchableOpacity>
@@ -145,35 +146,31 @@ export function PostCard({ post }: PostCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 12,
     paddingVertical: 16,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F3F4F6',
   },
-  header: {
+
+  /* ⭐ HEADER FACEBOOK */
+  groupHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     marginBottom: 12,
+    gap: 12,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  userName: {
+  groupName: {
     fontSize: 15,
-    fontWeight: '600' as const,
+    fontWeight: '700',
     color: '#111827',
-    marginBottom: 2,
   },
-  timestamp: {
+  postAuthor: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: '#6B7280',
+    marginTop: 2,
   },
+
   content: {
     fontSize: 15,
     color: '#374151',
@@ -181,39 +178,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-  imagesContainer: {
-    marginBottom: 12,
-  },
-  imagesContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  postImage: {
-    width: 280,
-    height: 280,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-  },
-  singleImage: {
-    width: '100%',
-    height: 320,
-  },
+
+  imagesContainer: { marginBottom: 12 },
+  imagesContent: { paddingHorizontal: 16, gap: 8 },
+  postImage: { width: 280, height: 280, borderRadius: 12 },
+  singleImage: { width: '100%', height: 300 },
+
   stats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    paddingBottom: 8,
   },
-  statText: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  rightStats: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  statText: { fontSize: 13, color: '#6B7280' },
+  rightStats: { flexDirection: 'row', gap: 12 },
+
   actions: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -224,20 +203,27 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
     gap: 6,
+    paddingVertical: 8,
   },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#6B7280',
+  actionText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  likedText: { color: '#EF4444' },
+  groupAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
   },
-  likedText: {
-    color: '#EF4444',
-  },
-  animatedIcon: {
-    transform: [{ scale: 1.2 }],
+
+  overlayUserAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,        // Tròn 100%
+    borderWidth: 2,          // Viền trắng cho đẹp như Facebook
+    borderColor: '#FFFFFF',
+    position: 'absolute',
+    bottom: -2,              // Nhô ra 1 chút cho giống FB
+    right: -2,
   },
 });

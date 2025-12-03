@@ -36,3 +36,27 @@ export interface Comment {
   content: string;
   createdAt: string;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  avatar: string;
+  isFollowing: boolean;
+}
+
+export interface Message {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  isOnline: boolean;
+}
+
+export interface FeedPost extends Post {
+  source: 'following' | 'group';
+  sourceId?: string;
+  sourceName?: string;
+}

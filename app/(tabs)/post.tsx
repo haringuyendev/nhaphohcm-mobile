@@ -7,7 +7,6 @@ import {
   TouchableOpacity, 
   TextInput,
   Alert,
-  SafeAreaView,
   Modal,
   FlatList,
   Image as RNImage,
@@ -19,6 +18,7 @@ import { X, Upload, ChevronDown } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
 import { PropertyType, TransactionType, Direction, PropertyImage } from '@/types/property';
 import { provinces, districtsByProvince, wardsByDistrict } from '@/mocks/data';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const STEPS = ['Loại BĐS', 'Địa chỉ', 'Thông tin', 'Hình ảnh', 'Hoàn tất'];
 
@@ -453,7 +453,7 @@ export default function PostScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen 
         options={{
           headerTitle: 'Đăng tin',

@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { TrendingUp, Zap, Edit, Trash2, EyeOff, Clock } from 'lucide-react-native';
-import { useApp } from '@/contexts/AppContext';
+import { Header } from '@/components/Headers/Header';
 import { PropertyCard } from '@/components/PropertyCard';
+import { useApp } from '@/contexts/AppContext';
 import { mockVIPPackages } from '@/mocks/data';
+import { Stack, useRouter } from 'expo-router';
+import { Clock, Edit, EyeOff, Trash2, TrendingUp, Zap } from 'lucide-react-native';
+import { useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type TabType = 'active' | 'hidden' | 'expired';
 
@@ -147,14 +149,13 @@ export default function MyPostsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen 
         options={{
-          headerTitle: 'Tin của tôi',
-          headerTitleStyle: { fontWeight: '700' as const },
+          headerShown:false
         }} 
       />
-
+      <Header/>
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'active' && styles.tabActive]}

@@ -255,6 +255,23 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return communities.filter((c) => c.isOwned);
   }, [communities]);
 
+  const getRecommendCommunities=useMemo(()=>{
+    return communities.filter((c)=>!c.isJoined)
+  },[communities])
+
+  const getPostWithCommunity = useMemo(() => {
+  return posts.map((post) => {
+    const community = communities.find(
+      (c) => c.id === post.communityId
+    );
+
+    return {
+      ...post,
+      community, // community sẽ là object hoặc undefined
+    };
+  });
+}, [ posts, communities]);
+
   const getPostsByCommunity = useCallback((communityId: string) => {
     return posts
       .filter((p) => p.communityId === communityId)
@@ -332,5 +349,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     togglePostLike,
     addPost,
     incrementShareCount,
+    getRecommendCommunities,
+    getPostWithCommunity
   };
 });
