@@ -2,8 +2,10 @@ import { Banner } from '@/components/Banner';
 import { CategoryCard } from '@/components/CategoryCard';
 import { Header } from '@/components/Headers/Header';
 import { PropertyCard } from '@/components/PropertyCard';
-import { useApp } from '@/contexts/AppContext';
+import { useApp } from '@/hooks/use-app';
 import { mockBanners, mockCategories } from '@/mocks/data';
+import { useGetPropertiesQuery } from '@/store/api/properties';
+import { Property } from '@/types';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -11,14 +13,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { getVIPProperties, getActiveProperties } = useApp();
   const [refreshing, setRefreshing] = useState(false);
+  const {data, isLoading, error, refetch} = useGetPropertiesQuery({});
+  
+  const vipProperties = data?.docs.filter((p: Property) => p.is_vip) || [];
+  const allProperties = data?.docs.filter((p: Property) => !p.is_vip) || [];
 
-  const vipProperties = getVIPProperties;
-  const allProperties = getActiveProperties;
-
-  const handleRefresh = () => {
+  const handleRefresh = async() => {
     setRefreshing(true);
+    await refetch()
     setTimeout(() => setRefreshing(false), 1000);
   };
 
@@ -31,7 +34,6 @@ export default function HomeScreen() {
       },
     } as any);
   };
-
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen
@@ -78,7 +80,7 @@ export default function HomeScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.vipContainer}
                 >
-                  {vipProperties.slice(0, 5).map((property) => (
+                  {vipProperties.slice(0, 5).map((property: Property) => (
                     <View key={property.id} style={styles.vipCard}>
                       <PropertyCard property={property} />
                     </View>

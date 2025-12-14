@@ -1,9 +1,12 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
-import { Stack } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 import { User, Heart, FileText, Settings, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLogoutMutation } from '@/store/api/auth';
+import * as SecureStore from "expo-secure-store";
 
 export default function ProfileScreen() {
+  const router=useRouter()
   const menuItems = [
     {
       icon: User,
@@ -32,14 +35,24 @@ export default function ProfileScreen() {
       onPress: () => console.log('Help'),
     },
   ];
+  const [logOut, { isLoading }] = useLogoutMutation();
 
+  const handleLogout = async () => {
+    try {
+      await logOut();
+      await SecureStore.deleteItemAsync("token");
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  }
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: 'Tài khoản',
           headerTitleStyle: { fontWeight: '700' as const },
-        }} 
+        }}
       />
 
       <ScrollView style={styles.content}>
@@ -97,7 +110,11 @@ export default function ProfileScreen() {
           })}
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.7}
+          onPress={handleLogout}
+        >
           <LogOut size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>

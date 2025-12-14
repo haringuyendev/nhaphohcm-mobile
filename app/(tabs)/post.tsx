@@ -15,7 +15,7 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Upload, ChevronDown } from 'lucide-react-native';
-import { useApp } from '@/contexts/AppContext';
+import { useApp } from '@/hooks/use-app';
 import { PropertyType, TransactionType, Direction, PropertyImage } from '@/types/property';
 import { provinces, districtsByProvince, wardsByDistrict } from '@/mocks/data';
 import { SafeAreaView } from 'react-native-safe-area-context';

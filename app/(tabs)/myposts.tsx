@@ -1,6 +1,6 @@
 import { Header } from '@/components/Headers/Header';
 import { PropertyCard } from '@/components/PropertyCard';
-import { useApp } from '@/contexts/AppContext';
+import { useApp } from '@/hooks/use-app';
 import { mockVIPPackages } from '@/mocks/data';
 import { Stack, useRouter } from 'expo-router';
 import { Clock, Edit, EyeOff, Trash2, TrendingUp, Zap } from 'lucide-react-native';

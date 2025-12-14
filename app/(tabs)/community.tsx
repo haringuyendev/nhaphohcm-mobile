@@ -1,8 +1,6 @@
 // app/(tabs)/community.tsx  (hoặc đường dẫn bạn đang dùng)
 import { PostCard } from '@/components/PostCard';
-import { useApp } from '@/contexts/AppContext';
-import { mockFeedPosts } from '@/mocks/data';
-import { FeedPost } from '@/types/community';
+import { useApp } from '@/hooks/use-app';
 import { Stack, useRouter } from 'expo-router';
 import {
   Compass,
@@ -48,7 +46,6 @@ export default function CommunityScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [feedPosts] = useState<FeedPost[]>(mockFeedPosts);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Users, UserPlus, UserMinus } from 'lucide-react-native';
-import { useApp } from '@/contexts/AppContext';
+import { useApp } from '@/hooks/use-app';
 import { PostCard } from '@/components/PostCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -62,6 +62,12 @@ export default function CommunityDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <Stack.Screen
+        options={{
+          headerTitle: community.name,
+          headerTransparent: false,
+        }}
+      />
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}

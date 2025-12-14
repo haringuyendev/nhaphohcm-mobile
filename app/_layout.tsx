@@ -3,18 +3,24 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AppProvider } from "@/contexts/AppContext";
+import { Provider } from "react-redux";
+import { store, useAppDispatch } from "@/store";
+import { loadAppData } from "@/store/slices/app";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const dispatch = useAppDispatch()
+  useEffect(() => {
+    dispatch(loadAppData());
+  }, [dispatch]);
   return (
     <Stack screenOptions={{ headerBackTitle: "Quay lại" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="property/[id]" options={{ headerShown: true, headerTitle:''}} />
-      <Stack.Screen name="community/[id]" options={{ headerShown: true, headerTitle:''}} />
+      <Stack.Screen name="property/[id]" options={{ headerShown: true, headerTitle: '' }} />
+      <Stack.Screen name="community/[id]" options={{ headerShown: true, headerTitle: '' }} />
     </Stack>
   );
 }
@@ -26,11 +32,11 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppProvider>
+      <Provider store={store}>
         <GestureHandlerRootView>
           <RootLayoutNav />
         </GestureHandlerRootView>
-      </AppProvider>
+      </Provider>
     </QueryClientProvider>
   );
 }

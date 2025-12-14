@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Share as RNShare } from 'react-native';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
-import { useApp } from '@/contexts/AppContext';
+import { useApp } from '@/hooks/use-app';
 import { Community, Post } from '@/types/community';
 
 interface PostCardProps {

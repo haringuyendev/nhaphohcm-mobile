@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { Stack } from 'expo-router';
 import { SlidersHorizontal } from 'lucide-react-native';
-import { useApp } from '@/contexts/AppContext';
+import { useApp } from '@/hooks/use-app';
 import { PropertyCard } from '@/components/PropertyCard';
 import { SearchFilters } from '@/types/property';
 import FiltersPanel from '@/components/search/FiltersPanel';
