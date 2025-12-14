@@ -1,8 +1,15 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { useApp } from '@/contexts/AppContext';
+import { Media, Property } from '@/store/types/payload-types';
 import { useRouter } from 'expo-router';
 import { Heart, MapPin } from 'lucide-react-native';
-import { Property } from '@/types/property';
-import { useApp } from '@/contexts/AppContext';
+import {
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -15,7 +22,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const router = useRouter();
   const { toggleFavorite, isFavorite } = useApp();
 
-  const formatPrice = (price: number, unit: string) => {
+  const formatPrice = (price: number, unit = 'triệu'): string => {
     if (unit === 'billion') {
       return `${price} tỷ`;
     }
@@ -33,48 +40,53 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
   const favorite = isFavorite(property.id);
 
+  const imageUrl =
+    process.env.EXPO_PUBLIC_URL! + (property?.images?.[0]?.image as Media)?.url;
+
   return (
-    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       <View style={styles.imageContainer}>
-        <Image 
-          source={{ uri: property.images[0]?.uri }} 
+        <Image
+          source={{
+            uri: imageUrl,
+          }}
           style={styles.image}
           resizeMode="cover"
         />
-        {property.isVIP && (
+        {property.is_vip && (
           <View style={styles.vipBadge}>
             <Text style={styles.vipText}>VIP</Text>
           </View>
         )}
-        <TouchableOpacity 
-          style={styles.favoriteButton} 
+        <TouchableOpacity
+          style={styles.favoriteButton}
           onPress={handleFavorite}
           activeOpacity={0.7}
         >
-          <Heart 
-            size={20} 
-            color={favorite ? '#EF4444' : '#FFFFFF'} 
+          <Heart
+            size={20}
+            color={favorite ? '#EF4444' : '#FFFFFF'}
             fill={favorite ? '#EF4444' : 'transparent'}
           />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={2}>
           {property.title}
         </Text>
-        
+
         <View style={styles.priceRow}>
-          <Text style={styles.price}>
-            {formatPrice(property.price, property.priceUnit)}
-          </Text>
-          {property.pricePerM2 && (
-            <Text style={styles.pricePerM2}>
-              ~{property.pricePerM2} tr/m²
-            </Text>
-          )}
+          <Text style={styles.price}>{formatPrice(property.price)}</Text>
+          {/* {property.pricePerM2 && (
+            <Text style={styles.pricePerM2}>~{property.pricePerM2} tr/m²</Text>
+          )} */}
         </View>
-        
+
         <View style={styles.detailsRow}>
           <Text style={styles.detail}>{property.area} m²</Text>
           {property.bedrooms && (
@@ -90,19 +102,19 @@ export function PropertyCard({ property }: PropertyCardProps) {
             </>
           )}
         </View>
-        
+
         <View style={styles.locationRow}>
           <MapPin size={14} color="#6B7280" />
           <Text style={styles.location} numberOfLines={1}>
-            {property.location.district}, {property.location.province}
+            {property.address}
           </Text>
         </View>
-        
+
         <View style={styles.footer}>
           <Text style={styles.postedTime}>
             {new Date(property.updatedAt).toLocaleDateString('vi-VN')}
           </Text>
-          <Text style={styles.viewCount}>{property.viewCount} lượt xem</Text>
+          {/* <Text style={styles.viewCount}>{property} lượt xem</Text> */}
         </View>
       </View>
     </TouchableOpacity>

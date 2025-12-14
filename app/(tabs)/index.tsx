@@ -2,20 +2,28 @@ import { Banner } from '@/components/Banner';
 import { CategoryCard } from '@/components/CategoryCard';
 import { Header } from '@/components/Headers/Header';
 import { PropertyCard } from '@/components/PropertyCard';
-import { useApp } from '@/contexts/AppContext';
 import { mockBanners, mockCategories } from '@/mocks/data';
+import { useGetPropertiesQuery } from '@/store/services/properties';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
+  const { data, error, isLoading } = useGetPropertiesQuery(null);
+
   const router = useRouter();
-  const { getVIPProperties, getActiveProperties } = useApp();
   const [refreshing, setRefreshing] = useState(false);
 
-  const vipProperties = getVIPProperties;
-  const allProperties = getActiveProperties;
+  const allProperties = data?.docs || [];
+  const vipProperties = allProperties.filter((property) => property.is_vip);
 
   const handleRefresh = () => {
     setRefreshing(true);
