@@ -2,6 +2,12 @@
   "expo": {
     "name": "nhaphohcm",
     "slug": "nhaphohcm",
+    "extra": {
+      "eas": {
+        "projectId": "5a64aee4-b9ea-4f59-ae8a-abd0770a88df"
+      },
+      "router": {}
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,7 +15,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hainguyentot.nhaphohcm",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -44,6 +54,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "owner": "hainguyentot"
   }
 }

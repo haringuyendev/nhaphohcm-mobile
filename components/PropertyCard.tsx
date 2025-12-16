@@ -56,7 +56,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const resolveImageUrl = (relative?: string | null | undefined) => {
     if (!relative) return null;
     if (relative.startsWith("http")) return relative;
-    return `http://192.168.2.120:3000${relative}`;
+    return `${process.env.EXPO_PUBLIC_API_URL}${relative}`;
   };
 
   const favorite = isFavorite(property.id);

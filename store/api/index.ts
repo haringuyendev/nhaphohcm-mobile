@@ -5,7 +5,7 @@ export const baseApi = createApi({
   reducerPath: "api",
 
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.EXPO_PUBLIC_API_URL || "http://192.168.2.120:3000",
+    baseUrl: process.env.EXPO_PUBLIC_API_URL,
     credentials: "omit",
 
     prepareHeaders: async (headers) => {
@@ -20,6 +20,7 @@ export const baseApi = createApi({
   tagTypes: [
     "Auth",
     "User",
+    "PropertyTypes",
     "Properties",
     "Conversations",
     "Messages",
@@ -28,6 +29,9 @@ export const baseApi = createApi({
     "SocialPosts",
     "Comments",
     "PostLikes",
+    "Provinces",
+    "Districts",
+    "Wards",
   ],
 
   endpoints: () => ({}),

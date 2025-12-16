@@ -1,4 +1,5 @@
 import { Property, User } from "@/types"
+import qs from "qs";
 
 const toArray = (value: string | string[] | undefined): string[] => {
   if (Array.isArray(value)) return value
@@ -33,6 +34,7 @@ export const removeVietnameseTones = (str: string): string => {
 
 export function buildWhereFromParams(params: any) {
   const searchConditions: any[] = [];
+  console.log(params);
 
   const searchRaw = (params.search || params.q)?.toString().trim() || "";
   const cleanQuery = searchRaw ? removeVietnameseTones(searchRaw) : "";
@@ -85,9 +87,9 @@ export function buildWhereFromParams(params: any) {
         ],
       },
       ...(searchConditions.length ? [{ or: searchConditions }] : []),
-      ...(params.p_types ? [{ "type.value": { in: toArray(params.p_types) } }] : []),
-      ...(params.d ? [{ "district.code": { in: toArray(params.d).map(Number) } }] : []),
-      ...(params.w ? [{ "ward.code": { in: toArray(params.w).map(Number) } }] : []),
+      ...(params.type ? [{ "type.value": { equals: params.type } }] : []),
+      ...(params.district ? [{ "district.code": { equals: params.district } }] : []),
+      ...(params.ward ? [{ "ward.code": { equals: params.ward } }] : []),
       ...(priceMin !== undefined ? [{ price: { greater_than_equal: priceMin } }] : []),
       ...(priceMax !== undefined ? [{ price: { less_than_equal: priceMax } }] : []),
       ...(areaMin !== undefined ? [{ area: { greater_than_equal: areaMin } }] : []),
@@ -174,7 +176,13 @@ export function encodeWhere(where: any) {
 }
 
 export function encodePayloadWhere(where: any) {
-  return JSON.stringify(where);
+  return qs.stringify(
+    { where },
+    {
+      allowDots: true,
+      encode: false,
+    }
+  );
 }
 
 export const getImageUrl = (img?: any): string => {
@@ -182,12 +190,12 @@ export const getImageUrl = (img?: any): string => {
 
   // case: image: "abc123"
   if (typeof img === "string") {
-    return `http://192.168.2.120:3000/api/media/file/${img}`;
+    return `${process.env.EXPO_PUBLIC_API_URL}/api/media/file/${img}`;
   }
 
   // case: image: { url: "/api/media/file/xxx.jpg" }
   if (typeof img === "object" && img.url) {
-    return `http://192.168.2.120:3000${img.url}`;
+    return `${process.env.EXPO_PUBLIC_API_URL}${img.url}`;
   }
 
   return "";
@@ -200,10 +208,10 @@ export const getSellerAvatar = (seller: string | User) => {
 
   if (!avatar) return "";
   if (typeof avatar === "string")
-    return `http://192.168.2.120:3000/api/media/file/${avatar}`;
+    return `${process.env.EXPO_PUBLIC_API_URL}/api/media/file/${avatar}`;
 
   if (avatar.url)
-    return `http://192.168.2.120:3000${avatar.url}`;
+    return `${process.env.EXPO_PUBLIC_API_URL}${avatar.url}`;
 
   return "";
 };
@@ -221,3 +229,36 @@ export const getFullAddress = (property: Property) => {
 
   return `${ward ? ward + ", " : ""}${district ? district + ", " : ""}${province || ""}`;
 };
+
+// utils/payloadQuery.ts
+
+interface PayloadQueryOptions {
+  path: string;               // endpoint path → /api/wards, /api/properties
+  limit?: number;
+  page?: number;
+  sort?: string | string[];
+  where?: Record<string, any>;
+  otherParams?: Record<string, any>; // optional (expand: depth, populate...)
+}
+
+export function generatePayloadQuery({
+  path,
+  limit,
+  page,
+  sort,
+  where = {},
+  otherParams = {},
+}: PayloadQueryOptions) {
+  const queryString = qs.stringify(
+    {
+      ...(limit !== undefined ? { limit } : {}),
+      ...(page !== undefined ? { page } : {}),
+      ...(sort !== undefined ? { sort } : {}),
+      where,
+      ...otherParams,
+    },
+    { encode: false }
+  );
+
+  return `${path}?${queryString}`;
+}

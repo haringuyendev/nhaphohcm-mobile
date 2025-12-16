@@ -1,5 +1,6 @@
 // src/features/api/authApi.ts
 
+import { User } from "@/types";
 import { baseApi } from ".";
 
 export const authApi = baseApi.injectEndpoints({
@@ -22,7 +23,7 @@ export const authApi = baseApi.injectEndpoints({
     }),
 
     // 2. REGISTER
-    register: builder.mutation<any, { name: string; email: string; password: string }>({
+    register: builder.mutation<any, { name: string; email: string; password: string; phone:string; }>({
       query: (body) => ({
         url: "/api/users",
         method: "POST",
@@ -58,6 +59,16 @@ export const authApi = baseApi.injectEndpoints({
       providesTags: ["User"],
     }),
 
+    // 6. UPDATE CURRENT USER
+    updateMe: builder.mutation<User, Partial<User>>({
+      query: (body) => ({
+        url: "/api/users/me",
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["User"],
+    }),
+
   }),
 
   overrideExisting: false,
@@ -70,4 +81,5 @@ export const {
   useResetPasswordMutation,
   useMeQuery,
   useLogoutMutation,
+  useUpdateMeMutation,
 } = authApi;

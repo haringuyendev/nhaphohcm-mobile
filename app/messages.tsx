@@ -1,243 +1,185 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { Search, ArrowLeft } from 'lucide-react-native';
-import { Message } from '@/types/community';
-import { mockMessages } from '@/mocks/data';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// MessagesScreen.tsx
+import { useEffect, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  TextInput,
+} from "react-native";
+import { Stack, useRouter } from "expo-router";
+import { Search, ArrowLeft } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { useMeQuery } from "@/store/api/auth";
+import { useWebSocket, MESSAGE_TYPES } from "@/hooks/use-websocket";
+import { registerForPushNotificationsAsync, registerPushTokenToBackend, showLocalNotification } from "@/utils/notifications";
 
 export default function MessagesScreen() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [messages] = useState<Message[]>(mockMessages);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredMessages = messages.filter(
-    (msg) =>
-      msg.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      msg.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const { data: me } = useMeQuery();
 
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  // ---- Lưu trạng thái cũ để detect new message ----
+  const lastConversationsRef = useRef<Record<string, any>>({});
 
-    if (diffInMinutes < 1) return 'Vừa xong';
-    if (diffInMinutes < 60) return `${diffInMinutes} phút`;
-    if (diffInHours < 24) return `${diffInHours} giờ`;
-    if (diffInDays < 7) return `${diffInDays} ngày`;
-    return date.toLocaleDateString('vi-VN');
+  // ---- WebSocket with event listener ----
+  const { data, fetchCollection } = useWebSocket(handleWebsocketEvent);
+
+  // ---- Register notification ----
+  
+
+  // ---- Fetch conversations ----
+  useEffect(() => {
+    if (!me?.id) return;
+    fetchCollection("conversations", { limit: 50, sort: "-updatedAt" });
+  }, [me]);
+
+  const conversations = data?.conversations ?? [];
+
+  // ---- FILTER ----
+  const filteredConversations = conversations.filter((c) => {
+    const q = searchQuery.toLowerCase();
+    const title = c.title?.toLowerCase() || "";
+    const msg = c.lastMessage?.text?.toLowerCase() || "";
+
+    return title.includes(q) || msg.includes(q);
+  });
+
+  // ------------------------------------------------------------
+  // 🔥 Khi socket trả event COLLECTION_CHANGED → detect new message
+  // ------------------------------------------------------------
+  function handleWebsocketEvent(event: string, payload: any) {
+    if (event !== MESSAGE_TYPES.COLLECTION_CHANGED) return;
+    if (payload.collection !== "conversations") return;
+
+    const conv = payload.doc;
+    const id = conv.id;
+
+    const lastState = lastConversationsRef.current[id];
+    lastConversationsRef.current[id] = conv;
+
+    if (!lastState) return; // lần đầu load → skip
+
+    const oldMsgTime = lastState?.lastMessage?.updatedAt;
+    const newMsgTime = conv?.lastMessage?.updatedAt;
+
+    if (!newMsgTime || newMsgTime === oldMsgTime) return;
+
+    // ---- Không notify nếu chính mình gửi ----
+    const senderId =
+      typeof conv.lastMessage.sender === "string"
+        ? conv.lastMessage.sender
+        : conv.lastMessage.sender?.id;
+
+    if (senderId === me?.id) return;
+
+    // ---- SHOW NOTIFICATION ----
+    showLocalNotification(
+      conv.title || "Tin nhắn mới",
+      conv.lastMessage?.text || "Bạn có tin nhắn mới."
+    );
+  }
+
+  const getTimeAgo = (date: string) => {
+    const d = new Date(date);
+    const diffMin = (Date.now() - d.getTime()) / 60000;
+
+    if (diffMin < 1) return "Vừa xong";
+    if (diffMin < 60) return `${Math.floor(diffMin)} phút`;
+    const hours = diffMin / 60;
+    if (hours < 24) return `${Math.floor(hours)} giờ`;
+    const days = hours / 24;
+    return `${Math.floor(days)} ngày`;
   };
 
-  const renderMessageItem = ({ item }: { item: Message }) => (
-    <TouchableOpacity
-      style={styles.messageItem}
-      activeOpacity={0.7}
-      onPress={() => {
-        console.log('Open chat with:', item.userName);
-      }}
-    >
-      <View style={styles.avatarContainer}>
-        <Image source={{ uri: item.userAvatar }} style={styles.avatar} />
-        {item.isOnline && <View style={styles.onlineIndicator} />}
-      </View>
+  const renderItem = ({ item:conv }:{item:any}) => {
+    const avatar =
+      typeof conv.participants?.[0] === "object"
+        ? conv.participants[0].avatar?.url
+        : undefined;
 
-      <View style={styles.messageContent}>
-        <View style={styles.messageHeader}>
-          <Text style={styles.userName}>{item.userName}</Text>
-          <Text style={styles.timestamp}>{getTimeAgo(item.lastMessageTime)}</Text>
-        </View>
-        <View style={styles.messageFooter}>
-          <Text
-            style={[
-              styles.lastMessage,
-              item.unreadCount > 0 && styles.unreadMessage,
-            ]}
-            numberOfLines={1}
-          >
-            {item.lastMessage}
+    return (
+      <TouchableOpacity style={styles.messageItem}>
+        <Image source={{ uri: avatar.url }} style={styles.avatar} />
+
+        <View style={styles.messageContent}>
+          <View style={styles.messageHeader}>
+            <Text style={styles.userName}>{conv.title}</Text>
+            <Text style={styles.timestamp}>
+              {conv.lastMessage?.updatedAt ? getTimeAgo(conv.lastMessage.updatedAt) : ""}
+            </Text>
+          </View>
+
+          <Text style={styles.lastMessage} numberOfLines={1}>
+            {conv.lastMessage?.text || "Chưa có tin nhắn"}
           </Text>
-          {item.unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadCount}>{item.unreadCount}</Text>
-            </View>
-          )}
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: 'Tin nhắn',
-          headerTitleStyle: { fontWeight: '700' as const, fontSize: 20 },
+          headerTitle: "Tin nhắn",
           headerLeft: () => (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <ArrowLeft size={24} color="#111827" />
+            <TouchableOpacity onPress={() => router.back()}>
+              <ArrowLeft size={24} />
             </TouchableOpacity>
           ),
         }}
       />
 
+      {/* Search */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputWrapper}>
           <Search size={20} color="#9CA3AF" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm kiếm tin nhắn..."
+            placeholder="Tìm kiếm..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#9CA3AF"
           />
         </View>
       </View>
 
       <FlatList
-        data={filteredMessages}
+        data={filteredConversations}
         keyExtractor={(item) => item.id}
-        renderItem={renderMessageItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {searchQuery
-                ? 'Không tìm thấy tin nhắn nào'
-                : 'Chưa có tin nhắn nào'}
-            </Text>
-          </View>
-        )}
+        renderItem={renderItem}
       />
     </SafeAreaView>
   );
 }
 
+// ---------------------- STYLES -------------------------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  backButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
+  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  searchContainer: { padding: 16, backgroundColor: "#FFF" },
   searchInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    flexDirection: "row",
+    backgroundColor: "#EEE",
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    padding: 10,
     gap: 8,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: '#111827',
-  },
-  listContent: {
-    paddingTop: 8,
-  },
+  searchInput: { flex: 1 },
   messageItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderColor: "#EEE",
   },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#E5E7EB',
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#10B981',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  messageContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  messageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#111827',
-  },
-  timestamp: {
-    fontSize: 13,
-    color: '#9CA3AF',
-  },
-  messageFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  lastMessage: {
-    flex: 1,
-    fontSize: 14,
-    color: '#6B7280',
-    marginRight: 8,
-  },
-  unreadMessage: {
-    fontWeight: '600' as const,
-    color: '#111827',
-  },
-  unreadBadge: {
-    backgroundColor: '#EF4444',
-    borderRadius: 12,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  unreadCount: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
+  avatar: { width: 56, height: 56, borderRadius: 28, marginRight: 12 },
+  messageContent: { flex: 1 },
+  messageHeader: { flexDirection: "row", justifyContent: "space-between" },
+  userName: { fontSize: 16, fontWeight: "600" },
+  timestamp: { fontSize: 13, color: "#9CA3AF" },
+  lastMessage: { marginTop: 4, fontSize: 14, color: "#555" },
 });

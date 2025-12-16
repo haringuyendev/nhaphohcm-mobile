@@ -72,7 +72,7 @@ export interface VIPPackage {
 
 export interface SearchFilters {
   transactionType?: TransactionType;
-  propertyType?: PropertyType;
+  p_type?: PropertyType;
   province?: string;
   district?: string;
   ward?: string;
