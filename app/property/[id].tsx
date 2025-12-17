@@ -29,6 +29,8 @@ import { useGetPropertyByIdQuery } from '@/store/api/properties';
 import { Property, User, Media, Province, District, Ward } from '@/types';
 import { getFullAddress, getImageUrl, getSellerAvatar, getSellerName } from '@/utils';
 import { renderLexicalNode } from '@/utils/lexical';
+import { useCreateOrGetConversationMutation } from '@/store/api/conversations';
+import { useMeQuery } from '@/store/api/auth';
 
 const { width } = Dimensions.get('window');
 
@@ -53,8 +55,10 @@ const timeAgo = (dateStr: string) => {
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams();
   const { data } = useGetPropertyByIdQuery(id as string, { skip: !id });
-
+  const {data:me}=useMeQuery()
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const [createOrGetConversation, {isLoading, error}]=useCreateOrGetConversationMutation()
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
@@ -85,6 +89,15 @@ export default function PropertyDetailScreen() {
       Linking.openURL(`tel:${property.seller.phone}`);
     }
   };
+  const handleChat=async()=>{
+    const res = await createOrGetConversation({
+      sender: me.user.id,
+      recipient: (property.seller as User).id,
+    }).unwrap()
+    
+    router.push(`/messages/${res.id}`)
+    
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -186,7 +199,7 @@ export default function PropertyDetailScreen() {
           <Text style={styles.callButtonText}>Gọi điện</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.messageButton}>
+        <TouchableOpacity style={styles.messageButton} onPress={handleChat}>
           <MessageCircle size={20} color="#EF4444" />
           <Text style={styles.messageButtonText}>Nhắn tin</Text>
         </TouchableOpacity>

@@ -176,7 +176,7 @@ export default function SearchScreen() {
       </View>
 
       {/* LOADING FIRST TIME */}
-      {isLoading && page === 1 ? (
+      {isLoading && page === 1 || isFetching&&page===1 ? (
         renderSkeleton()
       ) : (
         <FlatList

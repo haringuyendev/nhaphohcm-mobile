@@ -22,8 +22,6 @@ export async function registerForPushNotificationsAsync() {
       projectId: "5a64aee4-b9ea-4f59-ae8a-abd0770a88df",
     })
   ).data;
-
-  console.log("Expo Push Token:", token);
   return token;
 }
 

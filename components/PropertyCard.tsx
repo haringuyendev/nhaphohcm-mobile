@@ -98,23 +98,22 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <Text style={styles.title} numberOfLines={2}>{property.title}</Text>
 
         {/* PRICE */}
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>{formatPrice(property.price)}</Text>
-          {pricePerM2 && <Text style={styles.pricePerM2}>~{pricePerM2} triệu/m²</Text>}
-        </View>
+        {pricePerM2 !== null && (
+          <Text style={styles.pricePerM2}>~{pricePerM2} triệu/m²</Text>
+        )}
 
         {/* DETAILS */}
         <View style={styles.detailsRow}>
-          <Text style={styles.detail}>{property.area} m²</Text>
+          {property.area && <Text style={styles.detail}>{property.area} m²</Text>}
 
-          {property.bedrooms && (
+          {Number(property.bedrooms) > 0 && (
             <>
               <Text style={styles.separator}>•</Text>
               <Text style={styles.detail}>{property.bedrooms} PN</Text>
             </>
           )}
 
-          {property.bathrooms && (
+          {Number(property.bathrooms) > 0 && (
             <>
               <Text style={styles.separator}>•</Text>
               <Text style={styles.detail}>{property.bathrooms} WC</Text>
@@ -126,8 +125,9 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <View style={styles.locationRow}>
           <MapPin size={14} color="#6B7280" />
           <Text style={styles.location} numberOfLines={1}>
-            {(property.district as District)?.name}, {(property.province as Province)?.name}
+            {`${(property.district as District)?.name ?? ""}, ${(property.province as Province)?.name ?? ""}`}
           </Text>
+
         </View>
 
         {/* ------- FOOTER: TIME + SELLER ------- */}
