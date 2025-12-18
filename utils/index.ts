@@ -1,14 +1,14 @@
-import { Property, User } from "@/types"
+import { Property, User } from '@/types';
 
 const toArray = (value: string | string[] | undefined): string[] => {
-  if (Array.isArray(value)) return value
+  if (Array.isArray(value)) return value;
   if (typeof value === 'string')
     return value
       .split(',')
       .map((s) => s.trim())
-      .filter(Boolean)
-  return []
-}
+      .filter(Boolean);
+  return [];
+};
 
 const toSlug = (value: string) => {
   return value
@@ -17,26 +17,26 @@ const toSlug = (value: string) => {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[đĐ]/g, 'd')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
+    .replace(/^-+|-+$/g, '');
+};
 
 export const removeVietnameseTones = (str: string): string => {
-  if (!str) return ''
+  if (!str) return '';
   return str
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/đ/g, 'd')
     .replace(/Đ/g, 'D')
-    .trim()
-}
+    .trim();
+};
 
 export function buildWhereFromParams(params: any) {
   const searchConditions: any[] = [];
 
-  const searchRaw = (params.search || params.q)?.toString().trim() || "";
-  const cleanQuery = searchRaw ? removeVietnameseTones(searchRaw) : "";
-  const slugQuery = searchRaw ? toSlug(searchRaw) : "";
+  const searchRaw = (params.search || params.q)?.toString().trim() || '';
+  const cleanQuery = searchRaw ? removeVietnameseTones(searchRaw) : '';
+  const slugQuery = searchRaw ? toSlug(searchRaw) : '';
 
   if (searchRaw && cleanQuery) {
     const words = cleanQuery.split(/\s+/).filter((w) => w.length >= 2);
@@ -59,10 +59,10 @@ export function buildWhereFromParams(params: any) {
 
     // district / ward
     searchConditions.push(
-      { "district.name": { contains: searchRaw } },
-      { "district.name": { contains: cleanQuery } },
-      { "ward.name": { contains: searchRaw } },
-      { "ward.name": { contains: cleanQuery } }
+      { 'district.name': { contains: searchRaw } },
+      { 'district.name': { contains: cleanQuery } },
+      { 'ward.name': { contains: searchRaw } },
+      { 'ward.name': { contains: cleanQuery } }
     );
 
     // slug
@@ -85,13 +85,27 @@ export function buildWhereFromParams(params: any) {
         ],
       },
       ...(searchConditions.length ? [{ or: searchConditions }] : []),
-      ...(params.p_types ? [{ "type.value": { in: toArray(params.p_types) } }] : []),
-      ...(params.d ? [{ "district.code": { in: toArray(params.d).map(Number) } }] : []),
-      ...(params.w ? [{ "ward.code": { in: toArray(params.w).map(Number) } }] : []),
-      ...(priceMin !== undefined ? [{ price: { greater_than_equal: priceMin } }] : []),
-      ...(priceMax !== undefined ? [{ price: { less_than_equal: priceMax } }] : []),
-      ...(areaMin !== undefined ? [{ area: { greater_than_equal: areaMin } }] : []),
-      ...(areaMax !== undefined ? [{ area: { less_than_equal: areaMax } }] : []),
+      ...(params.p_types
+        ? [{ 'type.value': { in: toArray(params.p_types) } }]
+        : []),
+      ...(params.d
+        ? [{ 'district.code': { in: toArray(params.d).map(Number) } }]
+        : []),
+      ...(params.w
+        ? [{ 'ward.code': { in: toArray(params.w).map(Number) } }]
+        : []),
+      ...(priceMin !== undefined
+        ? [{ price: { greater_than_equal: priceMin } }]
+        : []),
+      ...(priceMax !== undefined
+        ? [{ price: { less_than_equal: priceMax } }]
+        : []),
+      ...(areaMin !== undefined
+        ? [{ area: { greater_than_equal: areaMin } }]
+        : []),
+      ...(areaMax !== undefined
+        ? [{ area: { less_than_equal: areaMax } }]
+        : []),
     ],
   };
 
@@ -100,7 +114,9 @@ export function buildWhereFromParams(params: any) {
 
 export function buildWhereFromStatus(params: any) {
   const now = new Date().toISOString();
-  const fiveDaysLater = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+  const fiveDaysLater = new Date(
+    Date.now() + 5 * 24 * 60 * 60 * 1000
+  ).toISOString();
 
   let where: any = {
     seller: { equals: params.user?.id },
@@ -112,7 +128,7 @@ export function buildWhereFromStatus(params: any) {
     const conditions: any[] = [];
 
     switch (status) {
-      case "published":
+      case 'published':
         conditions.push(
           { is_published: { equals: true } },
           { is_hidden: { equals: false } },
@@ -125,25 +141,25 @@ export function buildWhereFromStatus(params: any) {
         );
         break;
 
-      case "unpublished":
+      case 'unpublished':
         conditions.push(
           { is_published: { equals: false } },
-          { is_hidden: { equals: false } },
+          { is_hidden: { equals: false } }
         );
         break;
 
-      case "deleted":
+      case 'deleted':
         conditions.push({ is_hidden: { equals: true } });
         break;
 
-      case "expired":
+      case 'expired':
         conditions.push({ expire_at: { less_than: now } });
         break;
 
-      case "expiring":
+      case 'expiring':
         conditions.push(
           { expire_at: { greater_than_equal: now } },
-          { expire_at: { less_than_equal: fiveDaysLater } },
+          { expire_at: { less_than_equal: fiveDaysLater } }
         );
         break;
     }
@@ -178,46 +194,58 @@ export function encodePayloadWhere(where: any) {
 }
 
 export const getImageUrl = (img?: any): string => {
-  if (!img) return "";
+  if (!img) return '';
 
   // case: image: "abc123"
-  if (typeof img === "string") {
+  if (typeof img === 'string') {
     return `http://192.168.2.120:3000/api/media/file/${img}`;
   }
 
   // case: image: { url: "/api/media/file/xxx.jpg" }
-  if (typeof img === "object" && img.url) {
+  if (typeof img === 'object' && img.url) {
     return `http://192.168.2.120:3000${img.url}`;
   }
 
-  return "";
+  return '';
 };
 
 export const getSellerAvatar = (seller: string | User) => {
-  if (!seller || typeof seller === "string") return "";
+  if (!seller || typeof seller === 'string') return '';
 
   const avatar = seller.avatar as any;
 
-  if (!avatar) return "";
-  if (typeof avatar === "string")
+  if (!avatar) return '';
+  if (typeof avatar === 'string')
     return `http://192.168.2.120:3000/api/media/file/${avatar}`;
 
-  if (avatar.url)
-    return `http://192.168.2.120:3000${avatar.url}`;
+  if (avatar.url) return `http://192.168.2.120:3000${avatar.url}`;
 
-  return "";
+  return '';
 };
 
 export const getSellerName = (seller: string | User) => {
-  if (!seller) return "Người đăng";
-  if (typeof seller === "string") return "Người đăng"; 
-  return seller.name ?? "Người đăng";
+  if (!seller) return 'Người đăng';
+  if (typeof seller === 'string') return 'Người đăng';
+  return seller.name ?? 'Người đăng';
 };
 
 export const getFullAddress = (property: Property) => {
-  const province = typeof property.province === "string" ? "" : property.province?.name;
-  const district = typeof property.district === "string" ? "" : property.district?.name;
-  const ward = typeof property.ward === "string" ? "" : property.ward?.name;
+  const province =
+    typeof property.province === 'string' ? '' : property.province?.name;
+  const district =
+    typeof property.district === 'string' ? '' : property.district?.name;
+  const ward = typeof property.ward === 'string' ? '' : property.ward?.name;
 
-  return `${ward ? ward + ", " : ""}${district ? district + ", " : ""}${province || ""}`;
+  return `${ward ? ward + ', ' : ''}${district ? district + ', ' : ''}${
+    province || ''
+  }`;
+};
+
+// --------------------------
+// RESOLVE IMAGE URL
+// --------------------------
+export const resolveImageUrl = (relative?: string | null | undefined) => {
+  if (!relative) return null;
+  if (relative.startsWith('http')) return relative;
+  return `${process.env.EXPO_PUBLIC_API_URL}${relative}`;
 };

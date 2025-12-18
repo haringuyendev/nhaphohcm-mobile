@@ -1,9 +1,16 @@
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Heart, MapPin } from 'lucide-react-native';
 import { useApp } from '@/hooks/use-app';
 import { District, Media, Property, Province, User } from '@/types';
+import { resolveImageUrl } from '@/utils';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { Heart, MapPin } from 'lucide-react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -38,7 +45,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
   // --------------------------
   const formatPrice = (price: number) => {
     if (!price) return '';
-    if (price >= 1_000_000_000) return `${(price / 1_000_000_000).toFixed(1)} tỷ`;
+    if (price >= 1_000_000_000)
+      return `${(price / 1_000_000_000).toFixed(1)} tỷ`;
     return `${Math.round(price / 1_000_000)} triệu`;
   };
 
@@ -47,17 +55,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
   // --------------------------
   const pricePerM2 = (() => {
     if (!property.price || !property.area) return null;
-    return Math.round((property.price / property.area) / 1_000_000);
+    return Math.round(property.price / property.area / 1_000_000);
   })();
-
-  // --------------------------
-  // RESOLVE IMAGE URL
-  // --------------------------
-  const resolveImageUrl = (relative?: string | null | undefined) => {
-    if (!relative) return null;
-    if (relative.startsWith("http")) return relative;
-    return `http://192.168.2.120:3000${relative}`;
-  };
 
   const favorite = isFavorite(property.id);
 
@@ -68,16 +67,23 @@ export function PropertyCard({ property }: PropertyCardProps) {
   };
 
   return (
-    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       {/* ------- IMAGE -------- */}
       <View style={styles.imageContainer}>
         <Image
           source={{
             uri:
               resolveImageUrl((property?.images?.[0]?.image as Media)?.url) ||
-              "https://via.placeholder.com/400x300?text=No+Image",
+              'https://via.placeholder.com/400x300?text=No+Image',
           }}
-          placeholder={((property?.images?.[0]?.image as Media)?.blurhash) || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
+          placeholder={
+            (property?.images?.[0]?.image as Media)?.blurhash ||
+            'LEHV6nWB2yk8pyo0adR*.7kCMdnj'
+          }
           style={styles.image}
           contentFit="cover"
         />
@@ -88,19 +94,30 @@ export function PropertyCard({ property }: PropertyCardProps) {
           </View>
         )}
 
-        <TouchableOpacity style={styles.favoriteButton} onPress={handleFavorite}>
-          <Heart size={20} color={favorite ? '#EF4444' : '#FFF'} fill={favorite ? '#EF4444' : 'transparent'} />
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={handleFavorite}
+        >
+          <Heart
+            size={20}
+            color={favorite ? '#EF4444' : '#FFF'}
+            fill={favorite ? '#EF4444' : 'transparent'}
+          />
         </TouchableOpacity>
       </View>
 
       {/* ------- CONTENT -------- */}
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>{property.title}</Text>
+        <Text style={styles.title} numberOfLines={2}>
+          {property.title}
+        </Text>
 
         {/* PRICE */}
         <View style={styles.priceRow}>
           <Text style={styles.price}>{formatPrice(property.price)}</Text>
-          {pricePerM2 && <Text style={styles.pricePerM2}>~{pricePerM2} triệu/m²</Text>}
+          {pricePerM2 && (
+            <Text style={styles.pricePerM2}>~{pricePerM2} triệu/m²</Text>
+          )}
         </View>
 
         {/* DETAILS */}
@@ -126,7 +143,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <View style={styles.locationRow}>
           <MapPin size={14} color="#6B7280" />
           <Text style={styles.location} numberOfLines={1}>
-            {(property.district as District)?.name}, {(property.province as Province)?.name}
+            {(property.district as District)?.name},{' '}
+            {(property.province as Province)?.name}
           </Text>
         </View>
 
@@ -137,15 +155,19 @@ export function PropertyCard({ property }: PropertyCardProps) {
               <Image
                 source={{
                   uri:
-                    resolveImageUrl(((property?.seller as User)?.avatar as Media)?.url) ??
-                    "https://via.placeholder.com/80x80?text=User",
+                    resolveImageUrl(
+                      ((property?.seller as User)?.avatar as Media)?.url
+                    ) ?? 'https://via.placeholder.com/80x80?text=User',
                 }}
                 style={styles.sellerAvatar}
-                placeholder={((property?.seller as User)?.avatar as Media)?.blurhash || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
+                placeholder={
+                  ((property?.seller as User)?.avatar as Media)?.blurhash ||
+                  'LEHV6nWB2yk8pyo0adR*.7kCMdnj'
+                }
                 contentFit="cover"
               />
               <Text style={styles.sellerName} numberOfLines={1}>
-                {(property?.seller as User)?.name ?? "Người đăng"}
+                {(property?.seller as User)?.name ?? 'Người đăng'}
               </Text>
             </View>
           )}

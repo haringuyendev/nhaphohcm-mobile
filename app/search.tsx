@@ -1,11 +1,18 @@
-import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import { PropertyCard } from '@/components/PropertyCard';
+import FiltersPanel from '@/components/search/FiltersPanel';
+import { useApp } from '@/hooks/use-app';
+import { SearchFilters } from '@/types/property';
 import { Stack } from 'expo-router';
 import { SlidersHorizontal } from 'lucide-react-native';
-import { useApp } from '@/hooks/use-app';
-import { PropertyCard } from '@/components/PropertyCard';
-import { SearchFilters } from '@/types/property';
-import FiltersPanel from '@/components/search/FiltersPanel';
+import { useMemo, useState } from 'react';
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SearchScreen() {
@@ -25,13 +32,13 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: 'Tìm kiếm',
           headerTitleStyle: { fontWeight: '700' as const },
-        }} 
+        }}
       />
-      
+
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -40,8 +47,8 @@ export default function SearchScreen() {
           onChangeText={setKeyword}
           placeholderTextColor="#9CA3AF"
         />
-        <TouchableOpacity 
-          style={styles.filterButton} 
+        <TouchableOpacity
+          style={styles.filterButton}
           onPress={() => setShowFilters(!showFilters)}
         >
           <SlidersHorizontal size={20} color="#EF4444" />
@@ -49,7 +56,11 @@ export default function SearchScreen() {
       </View>
 
       {showFilters && (
-        <FiltersPanel filters={filters} onApply={handleApplyFilters} onClose={() => setShowFilters(false)} />
+        <FiltersPanel
+          filters={filters}
+          onApply={handleApplyFilters}
+          onClose={() => setShowFilters(false)}
+        />
       )}
 
       <View style={styles.resultsHeader}>

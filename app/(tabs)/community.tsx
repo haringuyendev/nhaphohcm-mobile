@@ -38,7 +38,7 @@ export default function CommunityScreen() {
     getJoinedCommunities,
     getOwnedCommunities,
     leaveCommunity,
-    getPostWithCommunity
+    getPostWithCommunity,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<TabType>('for-you');
@@ -66,10 +66,12 @@ export default function CommunityScreen() {
               onChangeText={setSearchQuery}
               autoFocus
             />
-            <TouchableOpacity onPress={() => {
-              setSearchVisible(false);
-              setSearchQuery('');
-            }}>
+            <TouchableOpacity
+              onPress={() => {
+                setSearchVisible(false);
+                setSearchQuery('');
+              }}
+            >
               <X size={24} color="#6B7280" />
             </TouchableOpacity>
           </View>
@@ -100,21 +102,24 @@ export default function CommunityScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          flexDirection: "row",
-          paddingHorizontal: 16,   // Khoảng cách 2 bên
-          gap: 20,                 // Khoảng cách giữa các tab
-          alignItems: "center",
+          flexDirection: 'row',
+          paddingHorizontal: 16, // Khoảng cách 2 bên
+          gap: 20, // Khoảng cách giữa các tab
+          alignItems: 'center',
         }}
       >
         <TouchableOpacity
-          style={[styles.tab, activeTab === "for-you" && styles.activeTab]}
-          onPress={() => setActiveTab("for-you")}
+          style={[styles.tab, activeTab === 'for-you' && styles.activeTab]}
+          onPress={() => setActiveTab('for-you')}
         >
-          <Home size={20} color={activeTab === "for-you" ? "#EF4444" : "#6B7280"} />
+          <Home
+            size={20}
+            color={activeTab === 'for-you' ? '#EF4444' : '#6B7280'}
+          />
           <Text
             style={[
               styles.tabText,
-              activeTab === "for-you" && styles.activeTabText,
+              activeTab === 'for-you' && styles.activeTabText,
             ]}
           >
             Dành cho bạn
@@ -122,17 +127,17 @@ export default function CommunityScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === "your-groups" && styles.activeTab]}
-          onPress={() => setActiveTab("your-groups")}
+          style={[styles.tab, activeTab === 'your-groups' && styles.activeTab]}
+          onPress={() => setActiveTab('your-groups')}
         >
           <UserCheck
             size={20}
-            color={activeTab === "your-groups" ? "#EF4444" : "#6B7280"}
+            color={activeTab === 'your-groups' ? '#EF4444' : '#6B7280'}
           />
           <Text
             style={[
               styles.tabText,
-              activeTab === "your-groups" && styles.activeTabText,
+              activeTab === 'your-groups' && styles.activeTabText,
             ]}
           >
             Nhóm của bạn
@@ -140,17 +145,17 @@ export default function CommunityScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === "discover" && styles.activeTab]}
-          onPress={() => setActiveTab("discover")}
+          style={[styles.tab, activeTab === 'discover' && styles.activeTab]}
+          onPress={() => setActiveTab('discover')}
         >
           <Compass
             size={20}
-            color={activeTab === "discover" ? "#EF4444" : "#6B7280"}
+            color={activeTab === 'discover' ? '#EF4444' : '#6B7280'}
           />
           <Text
             style={[
               styles.tabText,
-              activeTab === "discover" && styles.activeTabText,
+              activeTab === 'discover' && styles.activeTabText,
             ]}
           >
             Khám phá
@@ -158,17 +163,17 @@ export default function CommunityScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === "manage" && styles.activeTab]}
-          onPress={() => setActiveTab("manage")}
+          style={[styles.tab, activeTab === 'manage' && styles.activeTab]}
+          onPress={() => setActiveTab('manage')}
         >
           <Settings
             size={20}
-            color={activeTab === "manage" ? "#EF4444" : "#6B7280"}
+            color={activeTab === 'manage' ? '#EF4444' : '#6B7280'}
           />
           <Text
             style={[
               styles.tabText,
-              activeTab === "manage" && styles.activeTabText,
+              activeTab === 'manage' && styles.activeTabText,
             ]}
           >
             Quản lý
@@ -187,10 +192,7 @@ export default function CommunityScreen() {
         data={getPostWithCommunity}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            community={item.community}
-          />
+          <PostCard post={item} community={item.community} />
         )}
         refreshing={refreshing}
         onRefresh={onRefresh}
@@ -210,15 +212,20 @@ export default function CommunityScreen() {
                 style={styles.followedGroupRow}
                 onPress={() => router.push(`/community/${group.id}`)}
               >
-                <Image
-                  source={{ uri: group.coverImage }}
+                {/* <Image
+                  source={{
+                    uri:
+                      resolveImageUrl(
+                        ((group.cover?.avatar as Media)?.url
+                      ) ?? 'https://via.placeholder.com/80x80?text=User',
+                  }}
                   style={styles.followedGroupAvatar}
-                />
+                /> */}
 
                 <View style={styles.followedGroupInfo}>
                   <Text style={styles.followedGroupName}>{group.name}</Text>
                   <Text style={styles.followedGroupMembers}>
-                    {group.memberCount.toLocaleString("vi-VN")} thành viên
+                    {group.memberCount.toLocaleString('vi-VN')} thành viên
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -265,7 +272,10 @@ export default function CommunityScreen() {
       contentContainerStyle={{ padding: 16 }}
       renderItem={({ item }) => (
         <View style={styles.discoverCard}>
-          <Image source={{ uri: item.coverImage }} style={styles.discoverImage} />
+          <Image
+            source={{ uri: item.coverImage }}
+            style={styles.discoverImage}
+          />
           <View style={styles.discoverInfo}>
             <Text style={styles.discoverName}>{item.name}</Text>
             <Text style={styles.discoverCategory}>{item.category}</Text>
@@ -281,7 +291,11 @@ export default function CommunityScreen() {
                   styles.joinButton,
                   item.isJoined && styles.joinedButton,
                 ]}
-                onPress={() => item.isJoined ? leaveCommunity(item.id) : joinCommunity(item.id)}
+                onPress={() =>
+                  item.isJoined
+                    ? leaveCommunity(item.id)
+                    : joinCommunity(item.id)
+                }
               >
                 {item.isJoined ? (
                   <Text style={styles.joinedText}>Đã tham gia</Text>
@@ -340,7 +354,10 @@ export default function CommunityScreen() {
 
       {/* Modal Tạo mới */}
       <Modal visible={createModalVisible} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => setCreateModalVisible(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setCreateModalVisible(false)}
+        >
           <View style={styles.modal}>
             <Text style={styles.modalTitle}>Tạo mới</Text>
 
@@ -355,7 +372,9 @@ export default function CommunityScreen() {
               </View>
               <View>
                 <Text style={styles.modalItemTitle}>Tạo cộng đồng mới</Text>
-                <Text style={styles.modalItemDesc}>Tạo nhóm riêng về bất động sản</Text>
+                <Text style={styles.modalItemDesc}>
+                  Tạo nhóm riêng về bất động sản
+                </Text>
               </View>
             </TouchableOpacity>
 
@@ -370,7 +389,9 @@ export default function CommunityScreen() {
               </View>
               <View>
                 <Text style={styles.modalItemTitle}>Viết bài đăng</Text>
-                <Text style={styles.modalItemDesc}>Chia sẻ dự án, kinh nghiệm, tin tức</Text>
+                <Text style={styles.modalItemDesc}>
+                  Chia sẻ dự án, kinh nghiệm, tin tức
+                </Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -425,7 +446,13 @@ const styles = StyleSheet.create({
   activeTabText: { color: '#EF4444' },
   content: { flex: 1 },
   groupsSection: { backgroundColor: '#FFFFFF', paddingVertical: 16 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#111827', paddingHorizontal: 16, marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
   groupsHorizontal: { paddingHorizontal: 16, flexDirection: 'row', gap: 12 },
   groupItem: { width: 140, height: 100, borderRadius: 12, overflow: 'hidden' },
   groupImage: { width: '100%', height: '100%' },
@@ -451,7 +478,12 @@ const styles = StyleSheet.create({
   discoverInfo: { padding: 16 },
   discoverName: { fontSize: 18, fontWeight: '700', color: '#111827' },
   discoverCategory: { fontSize: 14, color: '#EF4444', marginTop: 4 },
-  discoverFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
+  discoverFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   memberCount: { fontSize: 14, color: '#6B7280' },
   joinButton: {
@@ -466,12 +498,37 @@ const styles = StyleSheet.create({
   joinedButton: { backgroundColor: '#10B981' },
   joinText: { color: '#FFFFFF', fontWeight: '600' },
   joinedText: { color: '#FFFFFF', fontWeight: '600' },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 },
+  empty: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
   emptyText: { fontSize: 16, color: '#9CA3AF' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modal: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, width: '88%' },
-  modalTitle: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 24 },
-  modalItem: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 16 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '88%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 16,
+  },
   modalIcon: {
     width: 50,
     height: 50,
@@ -483,15 +540,15 @@ const styles = StyleSheet.create({
   modalItemTitle: { fontSize: 17, fontWeight: '600' },
   modalItemDesc: { fontSize: 14, color: '#6B7280', marginTop: 4 },
   groupRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 10,
   },
   groupAvatar: {
     width: 48,
     height: 48,
     borderRadius: 8,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: '#E5E7EB',
   },
   groupInfo: {
     marginLeft: 12,
@@ -499,24 +556,24 @@ const styles = StyleSheet.create({
   },
   groupTitle: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
+    fontWeight: '600',
+    color: '#111827',
   },
   groupMembers: {
     fontSize: 13,
-    color: "#6B7280",
+    color: '#6B7280',
     marginTop: 2,
   },
   forYouHeader: {
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 4,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
   },
 
   followedGroupRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 10,
   },
 
@@ -524,7 +581,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 8,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: '#E5E7EB',
   },
 
   followedGroupInfo: {
@@ -533,19 +590,19 @@ const styles = StyleSheet.create({
 
   followedGroupName: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
+    fontWeight: '600',
+    color: '#111827',
   },
 
   followedGroupMembers: {
     fontSize: 13,
-    color: "#6B7280",
+    color: '#6B7280',
   },
 
   // PostCard header
   postHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
     marginBottom: 8,
   },
@@ -558,13 +615,12 @@ const styles = StyleSheet.create({
 
   postCommunityName: {
     fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
+    fontWeight: '700',
+    color: '#111827',
   },
 
   postAuthorName: {
     fontSize: 13,
-    color: "#6B7280",
+    color: '#6B7280',
   },
-
 });

@@ -1,37 +1,32 @@
-import { useState, useRef } from 'react';
+import { useGetPropertyByIdQuery } from '@/store/api/properties';
+import { Media } from '@/store/payload-types';
+import { Property, User } from '@/types';
+import { getFullAddress, getSellerName, resolveImageUrl } from '@/utils';
+import { renderLexicalNode } from '@/utils/lexical';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-  TouchableOpacity,
-  Linking,
-  Dimensions,
-  FlatList,
-} from 'react-native';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import {
-  Heart,
-  Phone,
-  MessageCircle,
-  MapPin,
-  Maximize,
-  Bed,
-  Bath,
-  Compass,
   Calendar,
-  Eye,
+  Heart,
+  MapPin,
+  MessageCircle,
+  Phone,
   Share2,
 } from 'lucide-react-native';
+import { useRef, useState } from 'react';
+import {
+  Dimensions,
+  FlatList,
+  Image,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useGetPropertyByIdQuery } from '@/store/api/properties';
-import { Property, User, Media, Province, District, Ward } from '@/types';
-import { getFullAddress, getImageUrl, getSellerAvatar, getSellerName } from '@/utils';
-import { renderLexicalNode } from '@/utils/lexical';
 
 const { width } = Dimensions.get('window');
-
 
 const timeAgo = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -90,6 +85,7 @@ export default function PropertyDetailScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
+          headerShown: true,
           headerTitle: property.title,
           headerRight: () => (
             <View style={styles.headerActions}>
@@ -97,7 +93,11 @@ export default function PropertyDetailScreen() {
                 <Share2 size={20} color="#111" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.headerButton}>
-                <Heart size={20} color={favorite ? '#EF4444' : '#111'} fill={favorite ? '#EF4444' : 'transparent'} />
+                <Heart
+                  size={20}
+                  color={favorite ? '#EF4444' : '#111'}
+                  fill={favorite ? '#EF4444' : 'transparent'}
+                />
               </TouchableOpacity>
             </View>
           ),
@@ -117,7 +117,12 @@ export default function PropertyDetailScreen() {
             viewabilityConfig={viewabilityConfig}
             renderItem={({ item }) => (
               <Image
-                source={{ uri: getImageUrl(item.image) }}
+                source={{
+                  uri:
+                    resolveImageUrl(
+                      (property?.images?.[0]?.image as Media)?.url
+                    ) || 'https://via.placeholder.com/400x300?text=No+Image',
+                }}
                 style={styles.image}
                 resizeMode="cover"
               />
@@ -153,10 +158,17 @@ export default function PropertyDetailScreen() {
 
           <View style={styles.sellerRow}>
             <Image
-              source={{ uri: getSellerAvatar(property.seller) || 'https://via.placeholder.com/80' }}
+              source={{
+                uri:
+                  resolveImageUrl(
+                    ((property?.seller as User)?.avatar as Media)?.url
+                  ) ?? 'https://via.placeholder.com/80x80?text=User',
+              }}
               style={styles.sellerAvatar}
             />
-            <Text style={styles.sellerName}>{getSellerName(property.seller)}</Text>
+            <Text style={styles.sellerName}>
+              {getSellerName(property.seller)}
+            </Text>
           </View>
         </View>
 
@@ -164,7 +176,9 @@ export default function PropertyDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mô tả</Text>
           <Text style={styles.description}>
-            {property.description ? renderLexicalNode(property.description.root) : 'Không có mô tả'}
+            {property.description
+              ? renderLexicalNode(property.description.root)
+              : 'Không có mô tả'}
           </Text>
         </View>
 
@@ -174,7 +188,9 @@ export default function PropertyDetailScreen() {
 
           <View style={styles.infoRow}>
             <Calendar size={16} color="#6B7280" />
-            <Text style={styles.infoText}>Đăng {timeAgo(property.createdAt)}</Text>
+            <Text style={styles.infoText}>
+              Đăng {timeAgo(property.createdAt)}
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -205,24 +221,34 @@ const styles = StyleSheet.create({
 
   headerActions: { flexDirection: 'row', gap: 8, marginRight: 16 },
   headerButton: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FFF',
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   imageSection: { position: 'relative' },
   image: { width: width, height: 300 },
   imagePagination: {
-    position: 'absolute', bottom: 16, right: 16,
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   imagePaginationText: { color: '#FFF', fontSize: 13, fontWeight: '600' },
 
   vipBadgeDetail: {
-    position: 'absolute', top: 16, left: 16,
+    position: 'absolute',
+    top: 16,
+    left: 16,
     backgroundColor: '#EF4444',
-    paddingHorizontal: 12, paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
   },
   vipBadgeText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
@@ -237,7 +263,12 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
 
   sellerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sellerAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#EEE' },
+  sellerAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#EEE',
+  },
   sellerName: { fontSize: 16, fontWeight: '600', color: '#111' },
 
   description: { fontSize: 15, lineHeight: 22, color: '#333' },
@@ -246,22 +277,34 @@ const styles = StyleSheet.create({
   infoText: { marginLeft: 8, fontSize: 14, color: '#777' },
 
   footer: {
-    flexDirection: 'row', padding: 16, gap: 12,
-    borderTopWidth: 1, borderTopColor: '#EEE', backgroundColor: '#FFF',
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+    backgroundColor: '#FFF',
   },
   callButton: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#EF4444',
-    paddingVertical: 14, borderRadius: 12, gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
   },
   callButtonText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
 
   messageButton: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FEE2E2',
-    paddingVertical: 14, borderRadius: 12, gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
   },
   messageButtonText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
 });
