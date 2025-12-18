@@ -129,7 +129,7 @@ export function buildWhereFromStatus(params: {
   if (params.status) {
     const conditions: any[] = [];
 
-    switch (status) {
+    switch (params.status) {
       case 'published':
         conditions.push(
           { is_published: { equals: true } },
