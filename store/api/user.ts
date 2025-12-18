@@ -10,11 +10,22 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: (result, error, id) =>
         result ? [{ type: "User", id }] : ["User"],
     }),
-  }),
 
-  overrideExisting: false,
+    toggleFavorite: builder.mutation<
+      { isFavorite: boolean; favorites: string[] },
+      { propertyId: string }
+    >({
+      query: ({ propertyId }) => ({
+        url: "/api/users/toggle-favorite",
+        method: "POST",
+        body: { propertyId },
+      }),
+      invalidatesTags: ["User", "Properties"],
+    })
+  }),
 });
 
 export const {
   useGetUserByIdQuery,
+  useToggleFavoriteMutation,
 } = userApi;

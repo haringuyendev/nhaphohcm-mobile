@@ -6,9 +6,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Provider } from "react-redux";
 import { store, useAppDispatch } from "@/store";
 import { loadAppData } from "@/store/slices/app";
-import { useMeQuery } from "@/store/api/auth";
 import * as Notifications from "expo-notifications";
 import { registerForPushNotificationsAsync, registerPushTokenToBackend } from "@/utils/notifications";
+import Toast from "react-native-toast-message";
+import { RealEstateToast } from "@/components/RealEstateToast";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,8 +59,8 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, []);
 
-  
-  
+
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldPlaySound: true,   // Phát âm thanh
@@ -68,12 +69,25 @@ export default function RootLayout() {
       shouldShowList: true,    // Bắt buộc trên iOS Notification List
     }),
   });
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <GestureHandlerRootView>
           <RootLayoutNav />
+          <Toast
+            config={{
+              realEstateSuccess: ({ text1, text2 }) => (
+                <RealEstateToast type="success" text1={String(text1)} text2={String(text2)} />
+              ),
+              realEstateRemoved: ({ text1, text2 }) => (
+                <RealEstateToast type="removed" text1={String(text1)} text2={String(text2)} />
+              ),
+              realEstateError: ({ text1, text2 }) => (
+                <RealEstateToast type="error" text1={String(text1)} text2={String(text2)} />
+              ),
+            }}
+          />
         </GestureHandlerRootView>
       </Provider>
     </QueryClientProvider>

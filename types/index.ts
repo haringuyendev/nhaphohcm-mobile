@@ -225,6 +225,8 @@ export interface User {
   roles: ('admin' | 'editor')[];
   phone: string;
   avatar?: (string | null) | Media;
+  expoPushToken?: string | null;
+  favoriteProperties?: (string | Property)[] | null;
   updatedAt: string;
   createdAt: string;
   email: string;

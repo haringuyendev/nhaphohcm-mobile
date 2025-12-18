@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   TouchableOpacity,
   Linking,
   Dimensions,
@@ -16,21 +15,18 @@ import {
   Phone,
   MessageCircle,
   MapPin,
-  Maximize,
-  Bed,
-  Bath,
-  Compass,
   Calendar,
-  Eye,
   Share2,
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGetPropertyByIdQuery } from '@/store/api/properties';
-import { Property, User, Media, Province, District, Ward } from '@/types';
+import { Property, User, Media } from '@/types';
 import { getFullAddress, getImageUrl, getSellerAvatar, getSellerName } from '@/utils';
 import { renderLexicalNode } from '@/utils/lexical';
 import { useCreateOrGetConversationMutation } from '@/store/api/conversations';
-import { useMeQuery } from '@/store/api/auth';
+import { Image } from 'expo-image';
+import { useUser } from '@/hooks/use-user';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 
@@ -55,10 +51,9 @@ const timeAgo = (dateStr: string) => {
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams();
   const { data } = useGetPropertyByIdQuery(id as string, { skip: !id });
-  const {data:me}=useMeQuery()
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-
-  const [createOrGetConversation, {isLoading, error}]=useCreateOrGetConversationMutation()
+  const { user: me, favorites, toggleFavorite } = useUser()
+  const [createOrGetConversation, { isLoading, error }] = useCreateOrGetConversationMutation()
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
@@ -69,7 +64,33 @@ export default function PropertyDetailScreen() {
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
   }).current;
+  const handleFavorite = async (e: any) => {
+    e.stopPropagation();
 
+    try {
+      const res = await toggleFavorite({ propertyId: property.id });
+
+      if (res?.data?.isFavorite) {
+        Toast.show({
+          type: "realEstateSuccess",
+          text1: "Đã thêm vào yêu thích ❤️",
+          text2:property.title
+        });
+      } else {
+        Toast.show({
+          type: "realEstateSuccess",
+          text1: "Đã xóa khỏi yêu thích",
+          text2:property.title
+        });
+      }
+    } catch (err) {
+      Toast.show({
+        type: "realEstateError",
+        text1: "Thao tác thất bại!",
+        text2: "Vui lòng thử lại.",
+      });
+    }
+  };
   if (!data) {
     return (
       <SafeAreaView style={styles.container}>
@@ -82,21 +103,21 @@ export default function PropertyDetailScreen() {
 
   const property = data as Property;
 
-  const favorite = false; // Tích hợp sau
+  const favorite = favorites.includes(property.id); // Tích hợp sau
 
   const handleCall = () => {
     if (typeof property.seller !== 'string' && property.seller?.phone) {
       Linking.openURL(`tel:${property.seller.phone}`);
     }
   };
-  const handleChat=async()=>{
+  const handleChat = async () => {
     const res = await createOrGetConversation({
-      sender: me.user.id,
+      sender: me?.id!,
       recipient: (property.seller as User).id,
     }).unwrap()
-    
+
     router.push(`/messages/${res.id}`)
-    
+
   }
 
   return (
@@ -109,7 +130,7 @@ export default function PropertyDetailScreen() {
               <TouchableOpacity style={styles.headerButton}>
                 <Share2 size={20} color="#111" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.headerButton}>
+              <TouchableOpacity style={styles.headerButton} onPress={handleFavorite}>
                 <Heart size={20} color={favorite ? '#EF4444' : '#111'} fill={favorite ? '#EF4444' : 'transparent'} />
               </TouchableOpacity>
             </View>
@@ -132,7 +153,9 @@ export default function PropertyDetailScreen() {
               <Image
                 source={{ uri: getImageUrl(item.image) }}
                 style={styles.image}
-                resizeMode="cover"
+                contentFit="cover"
+                placeholderContentFit="cover"
+                placeholder={((item.image as Media)?.blurhash) || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
               />
             )}
           />
@@ -168,6 +191,9 @@ export default function PropertyDetailScreen() {
             <Image
               source={{ uri: getSellerAvatar(property.seller) || 'https://via.placeholder.com/80' }}
               style={styles.sellerAvatar}
+              placeholder={((property?.images?.[0]?.image as Media)?.blurhash) || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
+              placeholderContentFit="cover"
+              contentFit="cover"
             />
             <Text style={styles.sellerName}>{getSellerName(property.seller)}</Text>
           </View>

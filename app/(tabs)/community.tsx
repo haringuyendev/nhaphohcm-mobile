@@ -16,7 +16,6 @@ import {
 import React, { useState } from 'react';
 import {
   FlatList,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -27,7 +26,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { Image } from 'expo-image';
+import { Media } from '@/types';
 type TabType = 'for-you' | 'your-groups' | 'discover' | 'manage';
 
 export default function CommunityScreen() {
@@ -213,6 +213,8 @@ export default function CommunityScreen() {
                 <Image
                   source={{ uri: group.coverImage }}
                   style={styles.followedGroupAvatar}
+                  contentFit="cover"
+                  placeholderContentFit="cover"
                 />
 
                 <View style={styles.followedGroupInfo}>

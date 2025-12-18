@@ -17,99 +17,26 @@ import { useGetPropertiesQuery } from "@/store/api/properties";
 import type { Property } from "@/types";
 import { PropertyCard } from "@/components/PropertyCard";
 import { SkeletonCard } from "@/components/Skeleton/PropertySkeleton";
-
-export interface SearchFilters {
-  province?: string;
-  district?: string;
-  ward?: string;
-  type?: string;
-  price_min?: number;
-  price_max?: number;
-  area_min?: number;
-  area_max?: number;
-}
-// Build CMS query params
-function buildSearchParams(keyword: string, filters: SearchFilters, page: number) {
-  const params: Record<string, any> = { limit: 10, page };
-
-  if (keyword?.trim().length > 0) params.search = keyword;
-  if (filters.province) params.province = filters.province;
-  if (filters.district) params.district = filters.district;
-  if (filters.ward) params.ward = filters.ward;
-  if (filters.type) params.type = filters.type;
-  if (filters.price_min) params.price_min = filters.price_min;
-  if (filters.price_max) params.price_max = filters.price_max;
-  if (filters.area_min) params.area_min = filters.area_min;
-  if (filters.area_max) params.area_max = filters.area_max;
-
-  return params;
-}
+import { useUser } from "@/hooks/use-user";
+import { useProperties } from "@/hooks/use-properties";
 
 export default function SearchScreen() {
   // UI state
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<SearchFilters>({province:'79'});
-  const [keyword, setKeyword] = useState("");
-
-  // DEBOUNCE
-  const [debouncedKeyword, setDebouncedKeyword] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedKeyword(keyword);
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [keyword]);
-
-  // PAGINATION STATE
-  const [page, setPage] = useState(1);
-
-  // ALWAYS rebuild params when page or filters change
-  const params = useMemo(
-    () => buildSearchParams(debouncedKeyword, filters, page),
-    [debouncedKeyword, filters, page]
-  );
-  // FETCH DATA
-  const { data, isLoading, isFetching } = useGetPropertiesQuery(params);
-
-  // MERGE RESULTS (Infinite Scroll)
-  const [mergedResults, setMergedResults] = useState<Property[]>([]);
-
-  useEffect(() => {
-    if (!data?.docs) return;
-
-    if (page === 1) {
-      // Load mới → reset danh sách
-      setMergedResults(data.docs);
-    } else {
-      // Load tiếp → append
-      setMergedResults((prev) => [...prev, ...data.docs]);
-    }
-  }, [data]);
-
-
-
-  // APPLY FILTERS
-  const handleApplyFilters = (newFilters: SearchFilters) => {
-    setFilters(newFilters);
-    setPage(1); // reset page
-    setShowFilters(false);
-  };
-
-  // LOAD MORE WHEN BOTTOM REACHED
-  const handleLoadMore = () => {
-    if (isFetching) return;
-    if (!data?.hasNextPage) return;
-
-    setPage(data.nextPage);
-  };
-
-  // RESET SEARCH (clear button)
-  const clearKeyword = () => {
-    setKeyword("");
-    setPage(1);
-  };
+  const { favorites, toggleFavorite } = useUser();
+  const {
+    properties: results,
+    keyword,
+    page,
+    setKeyword,
+    filters,
+    applyFilters,
+    handleLoadMore,
+    clearFilters,
+    isFetching,
+    propertiesLoading,
+    propertyHasNextPage,
+  } = useProperties();
 
   // SKELETON
   const renderSkeleton = () => (
@@ -143,7 +70,7 @@ export default function SearchScreen() {
 
           {/* CLEAR BUTTON */}
           {keyword.length > 0 && (
-            <TouchableOpacity style={styles.clearButton} onPress={clearKeyword}>
+            <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
               <X size={18} color="#9CA3AF" />
             </TouchableOpacity>
           )}
@@ -161,7 +88,7 @@ export default function SearchScreen() {
       {showFilters && (
         <FiltersPanel
           filters={filters}
-          onApply={handleApplyFilters}
+          onApply={applyFilters}
           onClose={() => setShowFilters(false)}
         />
       )}
@@ -169,25 +96,25 @@ export default function SearchScreen() {
       {/* RESULTS HEADER */}
       <View style={styles.resultsHeader}>
         <Text style={styles.resultsText}>
-          {isLoading && page === 1
+          {propertiesLoading && page === 1
             ? "Đang tải..."
-            : `${mergedResults.length} kết quả`}
+            : `${results.length} kết quả`}
         </Text>
       </View>
 
       {/* LOADING FIRST TIME */}
-      {isLoading && page === 1 || isFetching&&page===1 ? (
+      {propertiesLoading ? (
         renderSkeleton()
       ) : (
         <FlatList
-          data={mergedResults}
+          data={results}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PropertyCard property={item} />}
+          renderItem={({ item }) => <PropertyCard property={item} isFavorite={favorites.includes(item.id)} />}
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.35}
           ListFooterComponent={() =>
-            data?.hasNextPage ? (
+            propertyHasNextPage ? (
               <ActivityIndicator size="small" color="#EF4444" style={{ padding: 20 }} />
             ) : null
           }

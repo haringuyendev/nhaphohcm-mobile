@@ -6,56 +6,66 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, SendHorizontal } from "lucide-react-native";
+import { ArrowLeft, SendHorizontal, RotateCcw } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useWebSocket, MESSAGE_TYPES } from "@/hooks/use-websocket";
-import { useMeQuery } from "@/store/api/auth";
 import { useCreateMessageMutation } from "@/store/api/messages";
+import { Image } from "expo-image";
+import { Media } from "@/types";
+import { useUser } from "@/hooks/use-user";
 
 export default function ChatDetailScreen() {
   const router = useRouter();
   const { id: conversationId } = useLocalSearchParams();
 
   const [input, setInput] = useState("");
+  const [localMessages, setLocalMessages] = useState<any[]>([]); // TRẠNG THÁI MỚI
   const flatListRef = useRef<FlatList>(null);
-
-  const { data: me } = useMeQuery();
-  const [createMessage, { error }] = useCreateMessageMutation();
+  const {user:me}=useUser()
+  const [createMessage] = useCreateMessageMutation();
   const { data, fetchCollection } = useWebSocket(handleWS);
 
-  // ---- Conversation từ websocket ----
+  // ---- Conversation via WS ----
   const conversation = useMemo(() => {
-    return data?.conversations?.find((c) => c.id === conversationId);
-  }, [data?.conversations, conversationId]);
+    return data?.messages?.[0]?.conversation;
+  }, [data?.messages]);
+
 
   const headerPartner = useMemo(() => {
-    if (!conversation || !me?.user?.id) return null;
-    return conversation.participants?.find((p: any) => p.id !== me.user.id);
+    if (!conversation || !me?.id) return null;
+    const partner = conversation?.participants?.find((p: any) => p.id !== me?.id);
+    return partner;
   }, [conversation, me]);
 
-  // ---- Messages của conversation ----
-  const messages =
-    data?.messages
-      ?.filter((m) => {
-        const conv =
+  // ---- Messages from WS ----
+  const wsMessages = useMemo(() => {
+    if (!data?.messages) return [];
+
+    return data.messages
+      .filter((m) => {
+        const convId =
           typeof m.conversation === "string"
             ? m.conversation
             : m.conversation?.id;
-        return conv === conversationId;
+        return convId === conversationId;
       })
       .sort(
         (a, b) =>
           new Date(a.createdAt).getTime() -
           new Date(b.createdAt).getTime()
-      ) ?? [];
+      );
+  }, [data?.messages, conversationId]);
 
-  // ---- Fetch initial messages ----
+
+  // MERGE WS + LOCAL
+  const mergedMessages = useMemo(() => [...wsMessages, ...localMessages], [wsMessages, localMessages]);
+
+  // ---- Fetch messages on load ----
   useEffect(() => {
     if (!conversationId) return;
 
@@ -65,13 +75,14 @@ export default function ChatDetailScreen() {
       where: { conversation: { equals: conversationId } },
       depth: 2,
     });
-  }, [conversationId]);
+  }, [conversationId, fetchCollection]);
 
+  // Auto scroll
   useEffect(() => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 200);
-  }, [messages]);
+  }, [mergedMessages]);
 
   // ---- HANDLE REALTIME ----
   function handleWS(event: string, payload: any) {
@@ -79,6 +90,7 @@ export default function ChatDetailScreen() {
     if (payload.collection !== "messages") return;
 
     const msg = payload.doc;
+
     const convId =
       typeof msg.conversation === "string"
         ? msg.conversation
@@ -86,33 +98,98 @@ export default function ChatDetailScreen() {
 
     if (convId !== conversationId) return;
 
+    // Khi server trả về message thật → xoá localMessage tương ứng
+    setLocalMessages((prev) =>
+      prev.filter((m) => m.temp === false || m.text !== msg.text)
+    );
+
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
-    }, 150);
+    }, 120);
   }
 
-  // ---- SEND MESSAGE ----
+  // ---- SEND MESSAGE WITH OPTIMISTIC UI ----
   async function sendMessage() {
     if (!input.trim()) return;
-
     const text = input.trim();
     setInput("");
 
+    const tempId = "temp-" + Math.random().toString(36).slice(2);
+
+    // 1) Add temporary message (UI kh không lag)
+    setLocalMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        text,
+        sender: me,
+        createdAt: new Date().toISOString(),
+        conversation: conversationId,
+        temp: true,
+        status: "sending",
+      },
+    ]);
+
     try {
-      const res = await createMessage({
+      await createMessage({
         conversation: conversationId as string,
-        sender: me?.user,
+        sender: me!,
         text,
       }).unwrap();
 
-    } catch (err) {
+      // 2) Set trạng thái thành "sent"
+      setLocalMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? { ...m, status: "sent" }
+            : m
+        )
+      );
+    } catch (err: any) {
+      // 3) Set trạng thái failed
+      setLocalMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? { ...m, status: "failed" }
+            : m
+        )
+      );
     }
   }
 
+  // ---- Retry button ----
+  function retryMessage(msg: any) {
+    setLocalMessages((prev) =>
+      prev.map((m) =>
+        m.id === msg.id ? { ...m, status: "sending" } : m
+      )
+    );
 
-  // ---- BUBBLE UI ----
+    createMessage({
+      conversation: conversationId as string,
+      sender: me!,
+      text: msg.text,
+    })
+      .unwrap()
+      .then(() => {
+        setLocalMessages((prev) =>
+          prev.map((m) =>
+            m.id === msg.id ? { ...m, status: "sent" } : m
+          )
+        );
+      })
+      .catch(() => {
+        setLocalMessages((prev) =>
+          prev.map((m) =>
+            m.id === msg.id ? { ...m, status: "failed" } : m
+          )
+        );
+      });
+  }
+
+  // ---- MESSAGE UI ----
   const renderItem = ({ item }: { item: any }) => {
-    const isMine = item.sender?.id === me?.user?.id;
+    const isMine = item.sender?.id === me?.id;
 
     const avatar =
       !isMine && item.sender?.avatar?.url
@@ -121,34 +198,59 @@ export default function ChatDetailScreen() {
 
     const createdAt = item.createdAt
       ? new Date(item.createdAt)
-      : new Date(); // fallback tránh Invalid Date
+      : new Date();
 
     return (
       <View style={[styles.row, isMine ? styles.rowRight : styles.rowLeft]}>
         {!isMine && avatar && (
-          <Image source={{ uri: avatar }} style={styles.avatar} />
+          <Image source={{ uri: avatar }} style={styles.avatar}
+            contentFit="cover"
+            placeholderContentFit="cover"
+            placeholder={((avatar as Media)?.blurhash) || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
+          />
         )}
 
-        <View style={[styles.bubble, isMine ? styles.myBubble : styles.theirBubble]}>
-          <Text style={isMine ? styles.msgMine : styles.msgTheir}>{item.text}</Text>
+        <View
+          style={[
+            styles.bubble,
+            isMine ? styles.myBubble : styles.theirBubble,
+            item.status === "sending" && { opacity: 0.5 },
+            item.status === "failed" && { backgroundColor: "#fee2e2" },
+          ]}
+        >
+          <Text style={isMine ? styles.msgMine : styles.msgTheir}>
+            {item.text}
+          </Text>
 
           <Text style={isMine ? styles.timeMine : styles.timeTheir}>
-            {createdAt.toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {item.status === "sending"
+              ? "Đang gửi…"
+              : item.status === "failed"
+                ? "Gửi thất bại"
+                : createdAt.toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
           </Text>
+
+          {item.status === "failed" && (
+            <TouchableOpacity
+              onPress={() => retryMessage(item)}
+              style={{ marginTop: 4 }}
+            >
+              <RotateCcw size={16} color="red" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
   };
 
-
   return (
-    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: headerPartner?.name || "Đoạn chat",
+          headerTitle: headerPartner?.name || "",
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()}>
               <ArrowLeft size={24} />
@@ -159,26 +261,25 @@ export default function ChatDetailScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={mergedMessages}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 14, paddingBottom: 90 }}
-          showsVerticalScrollIndicator={false}
         />
 
         {/* Input */}
         <View style={styles.inputContainer}>
           <TextInput
             placeholder="Nhập tin nhắn..."
+            placeholderTextColor="#6B7280"
             value={input}
             onChangeText={setInput}
             style={styles.input}
-            placeholderTextColor="#6B7280"
           />
 
           <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>

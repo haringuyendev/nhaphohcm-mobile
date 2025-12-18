@@ -1,24 +1,21 @@
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Heart, MapPin } from 'lucide-react-native';
-import { useApp } from '@/hooks/use-app';
 import { District, Media, Property, Province, User } from '@/types';
 import { Image } from 'expo-image';
+import { useUser } from '@/hooks/use-user';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 
 interface PropertyCardProps {
   property: Property;
+  isFavorite: boolean;
 }
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
   const router = useRouter();
-  const { toggleFavorite, isFavorite } = useApp();
-
-  // --------------------------
-  // TIME AGO FORMAT
-  // --------------------------
   const timeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -32,44 +29,51 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
     return `${Math.floor(diff / 31104000)} năm trước`;
   };
+  const { toggleFavorite } = useUser()
 
-  // --------------------------
-  // FORMAT PRICE
-  // --------------------------
-  const formatPrice = (price: number) => {
-    if (!price) return '';
-    if (price >= 1_000_000_000) return `${(price / 1_000_000_000).toFixed(1)} tỷ`;
-    return `${Math.round(price / 1_000_000)} triệu`;
-  };
-
-  // --------------------------
-  // PRICE PER M2
-  // --------------------------
   const pricePerM2 = (() => {
     if (!property.price || !property.area) return null;
     return Math.round((property.price / property.area) / 1_000_000);
   })();
 
-  // --------------------------
-  // RESOLVE IMAGE URL
-  // --------------------------
   const resolveImageUrl = (relative?: string | null | undefined) => {
     if (!relative) return null;
     if (relative.startsWith("http")) return relative;
     return `${process.env.EXPO_PUBLIC_API_URL}${relative}`;
   };
 
-  const favorite = isFavorite(property.id);
-
   const handlePress = () => router.push(`/property/${property.id}` as any);
-  const handleFavorite = (e: any) => {
+
+  const handleFavorite = async (e: any) => {
     e.stopPropagation();
-    toggleFavorite(property.id);
+
+    try {
+      const res = await toggleFavorite({ propertyId: property.id });
+
+      if (res?.data?.isFavorite) {
+        Toast.show({
+          type: "realEstateSuccess",
+          text1: "Đã thêm vào yêu thích ❤️",
+          text2: property.title
+        });
+      } else {
+        Toast.show({
+          type: "realEstateSuccess",
+          text1: "Đã xóa khỏi yêu thích",
+          text2: property.title
+        });
+      }
+    } catch (err) {
+      Toast.show({
+        type: "realEstateError",
+        text1: "Thao tác thất bại!",
+        text2: "Vui lòng thử lại.",
+      });
+    }
   };
 
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
-      {/* ------- IMAGE -------- */}
       <View style={styles.imageContainer}>
         <Image
           source={{
@@ -80,6 +84,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
           placeholder={((property?.images?.[0]?.image as Media)?.blurhash) || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
           style={styles.image}
           contentFit="cover"
+          placeholderContentFit="cover"
         />
 
         {property.is_vip && (
@@ -89,7 +94,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
         )}
 
         <TouchableOpacity style={styles.favoriteButton} onPress={handleFavorite}>
-          <Heart size={20} color={favorite ? '#EF4444' : '#FFF'} fill={favorite ? '#EF4444' : 'transparent'} />
+          <Heart size={20} color={isFavorite ? '#EF4444' : '#FFF'} fill={isFavorite ? '#EF4444' : 'transparent'} />
         </TouchableOpacity>
       </View>
 

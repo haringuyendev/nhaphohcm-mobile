@@ -1,42 +1,35 @@
 // MessagesScreen.tsx (FULL CODE FIXED)
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   TextInput,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { Search, ArrowLeft, MessageSquare } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { useMeQuery } from "@/store/api/auth";
+import { Image } from "expo-image";
 import { useWebSocket, MESSAGE_TYPES } from "@/hooks/use-websocket";
-import { showLocalNotification } from "@/utils/notifications";
-import { Conversation, Message, User } from "@/types";
+import { Conversation, Media, Message, User } from "@/types";
+import { ConversationSkeleton } from "@/components/Skeleton/ConversationSkeleton";
+import { useUser } from "@/hooks/use-user";
 
 export default function MessagesScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-
-  const { data: me } = useMeQuery();
-  const userId = me?.user?.id;
+  const {user:me}=useUser()
+  const userId = me?.id;
 
   const lastConversationsRef = useRef<Record<string, Conversation>>({});
 
-  const { data, fetchCollection } = useWebSocket(handleWebsocketEvent);
+  const { data, fetchCollection, loading, connected } = useWebSocket(handleWebsocketEvent);
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchConversationList("");
-  }, [userId]);
-
-  function fetchConversationList(q: string) {
-    if (!userId) return;
+  const fetchConversationList = useCallback((q: string) => {
+    if (!userId || !connected) return;
 
     let where: any = {
       participants: { contains: userId },
@@ -63,9 +56,9 @@ export default function MessagesScreen() {
       where,
       depth: 2,
     });
-  }
+  }, [fetchCollection, userId, connected]);
 
-  const conversations = data?.conversations ?? [];
+  const conversations = useMemo(() => data?.conversations ?? [], [data?.conversations]);
 
   useEffect(() => {
     conversations.forEach((c: Conversation) => {
@@ -108,7 +101,7 @@ export default function MessagesScreen() {
 
   const renderItem = ({ item: conv }: { item: Conversation }) => {
     const partner: User = conv?.participants?.find(
-      (v: any) => v.id !== me.user.id
+      (v: any) => v.id !== me?.id
     ) as User;
 
     const avatar =
@@ -123,7 +116,11 @@ export default function MessagesScreen() {
         style={styles.messageItem}
         onPress={() => router.push(`/messages/${conv.id}`)}
       >
-        <Image source={{ uri: avatar }} style={styles.avatar} />
+        <Image source={{ uri: avatar }} style={styles.avatar}
+          contentFit="cover"
+          placeholderContentFit="cover"
+          placeholder={((avatar as Media)?.blurhash) || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
+        />
 
         <View style={styles.messageContent}>
           <View style={styles.messageHeader}>
@@ -142,6 +139,15 @@ export default function MessagesScreen() {
       </TouchableOpacity>
     );
   };
+
+  const renderMessageSkeleton = () => (
+    <FlatList
+      data={[1, 2, 3, 4, 5, 6]}
+      keyExtractor={(i) => `sk-${i}`}
+      renderItem={() => <ConversationSkeleton />}
+      contentContainerStyle={{ paddingTop: 8 }}
+    />
+  );
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -166,7 +172,7 @@ export default function MessagesScreen() {
     }, 350);
 
     return () => clearTimeout(timeout);
-  }, [searchQuery]);
+  }, [fetchConversationList, searchQuery]);
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
@@ -194,12 +200,16 @@ export default function MessagesScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={conversations}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListEmptyComponent={renderEmpty}
-      />
+      {!connected || loading ? (
+        renderMessageSkeleton()
+      ) : (
+        <FlatList
+          data={conversations}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListEmptyComponent={renderEmpty}
+        />
+      )}
     </SafeAreaView>
   );
 }

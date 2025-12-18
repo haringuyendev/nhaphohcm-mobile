@@ -1,7 +1,7 @@
 // hooks/use-websocket.ts
-import { useMeQuery } from "@/store/api/auth";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { useUser } from "./use-user";
 
 export const MESSAGE_TYPES = {
   FETCH_COLLECTION: "FETCH_COLLECTION",
@@ -18,37 +18,54 @@ export type WSStatus =
 
 export function useWebSocket(onEvent?: (event: string, payload: any) => void) {
   const socketRef = useRef<Socket | null>(null);
-  const { data: userData } = useMeQuery();
-  const userId = userData?.user?.id;
+  const {user:me}=useUser() 
+  const userId = me?.id;
 
+  const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<WSStatus>("disconnected");
+
   const [data, setData] = useState<Record<string, any[]>>({});
 
+  // -------------------------------
+  // INIT SOCKET
+  // -------------------------------
   useEffect(() => {
     if (!userId) return;
 
     const socket = io(process.env.EXPO_PUBLIC_WS_URL!, {
       path: "/socket.io",
       transports: ["websocket"],
+      reconnectionAttempts: 10,
     });
 
     socketRef.current = socket;
     setStatus("connecting");
 
+    // CONNECT
     socket.on("connect", () => {
       setStatus("connected");
+      setConnected(true);
       socket.emit("JOIN_USER", userId);
     });
 
-    socket.on("disconnect", () => setStatus("disconnected"));
-    socket.on("connect_error", () => setStatus("error"));
+    socket.on("disconnect", () => {
+      setStatus("disconnected");
+      setConnected(false);
+      setLoading(true); // important: show skeleton again
+    });
 
+    socket.on("connect_error", () => {
+      setStatus("error");
+    });
+
+    // GLOBAL EVENT HANDLER
     socket.onAny((event, payload) => {
-      // Trả event raw ra ngoài để screen xử lý
       onEvent?.(event, payload);
 
-      // Merge hậu kỳ vào data
-      if (event === MESSAGE_TYPES.COLLECTION_DATA) handleCollectionData(payload);
+      if (event === MESSAGE_TYPES.COLLECTION_DATA)
+        handleCollectionData(payload);
+
       if (event === MESSAGE_TYPES.COLLECTION_CHANGED)
         handleCollectionChanged(payload);
     });
@@ -59,63 +76,84 @@ export function useWebSocket(onEvent?: (event: string, payload: any) => void) {
     };
   }, [userId]);
 
-  // ---- Handler: collection data ----
+  // -------------------------------
+  // COLLECTION DATA
+  // -------------------------------
   const handleCollectionData = useCallback((payload: any) => {
     const col = payload?.collection;
-    const docs = payload?.docs ?? [];
     if (!col) return;
 
-    setData((prev) => ({
-      ...prev,
-      [col]: docs,
-    }));
+    const docs = payload?.docs ?? [];
+
+    setData(prev => {
+      const current = prev[col] ?? [];
+      const changed = JSON.stringify(current) !== JSON.stringify(docs);
+      if (!changed) return prev;
+
+      return { ...prev, [col]: docs };
+    });
+
+    setLoading(false);
   }, []);
 
-  // ---- Handler: collection changed ----
+  // -------------------------------
+  // COLLECTION CHANGE
+  // -------------------------------
   const handleCollectionChanged = useCallback((msg: any) => {
     const col = msg.collection;
     if (!col) return;
 
-    setData((prev) => {
+    setData(prev => {
       const arr = prev[col] ?? [];
-      const idx = arr.findIndex((i) => i.id === msg.doc.id);
+      const index = arr.findIndex(i => i.id === msg.doc.id);
+
+      let next = arr;
 
       if (msg.operation === "create") {
-        if (idx !== -1) return prev;
-        return { ...prev, [col]: [...arr, msg.doc] };
+        if (index !== -1) return prev;
+        next = [...arr, msg.doc];
       }
 
       if (msg.operation === "update") {
-        if (idx !== -1) {
-          const updated = [...arr];
-          updated[idx] = msg.doc;
-          return { ...prev, [col]: updated };
+        if (index !== -1) {
+          next = [...arr];
+          next[index] = msg.doc;
+        } else {
+          next = [...arr, msg.doc];
         }
-        return { ...prev, [col]: [...arr, msg.doc] };
       }
 
       if (msg.operation === "delete") {
-        return {
-          ...prev,
-          [col]: arr.filter((i) => i.id !== msg.doc.id),
-        };
+        next = arr.filter(i => i.id !== msg.doc.id);
       }
 
-      return prev;
+      return { ...prev, [col]: next };
     });
   }, []);
 
-  const fetchCollection = useCallback((collection: string, config: any = {}) => {
-    socketRef.current?.emit(MESSAGE_TYPES.FETCH_COLLECTION, {
-      col: collection,
-      ...config,
-    });
-  }, []);
+  // -------------------------------
+  // FETCH COLLECTION
+  // -------------------------------
+  const fetchCollection = useCallback(
+    (collection: string, config: any = {}) => {
+      if (!connected) return;
+
+      setLoading(true);
+
+      socketRef.current?.emit(MESSAGE_TYPES.FETCH_COLLECTION, {
+        col: collection,
+        ...config,
+      });
+    },
+    [connected]
+  );
 
   return {
     socket: socketRef.current,
-    status,
     fetchCollection,
+    status,
+    connected,
+    loading,
     data,
   };
 }
