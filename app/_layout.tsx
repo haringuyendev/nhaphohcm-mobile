@@ -1,15 +1,18 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import React, { useCallback, useEffect, useState } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Provider } from "react-redux";
-import { store, useAppDispatch } from "@/store";
-import { loadAppData } from "@/store/slices/app";
-import * as Notifications from "expo-notifications";
-import { registerForPushNotificationsAsync, registerPushTokenToBackend } from "@/utils/notifications";
-import Toast from "react-native-toast-message";
-import { RealEstateToast } from "@/components/RealEstateToast";
+import { RealEstateToast } from '@/components/RealEstateToast';
+import { store, useAppDispatch } from '@/store';
+import { loadAppData } from '@/store/slices/app';
+import {
+  registerForPushNotificationsAsync,
+  registerPushTokenToBackend,
+} from '@/utils/notifications';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Notifications from 'expo-notifications';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Toast from 'react-native-toast-message';
+import { Provider } from 'react-redux';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,10 +49,16 @@ function RootLayoutNav() {
   }, [dispatch]);
 
   return (
-    <Stack screenOptions={{ headerBackTitle: "Quay lại" }}>
+    <Stack screenOptions={{ headerBackTitle: 'Quay lại' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="property/[id]" options={{ headerShown: true, headerTitle: "" }} />
-      <Stack.Screen name="community/[id]" options={{ headerShown: true, headerTitle: "" }} />
+      <Stack.Screen
+        name="property/[id]"
+        options={{ headerShown: true, headerTitle: '' }}
+      />
+      <Stack.Screen
+        name="community/[id]"
+        options={{ headerShown: true, headerTitle: '' }}
+      />
     </Stack>
   );
 }
@@ -59,14 +68,12 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, []);
 
-
-
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldPlaySound: true,   // Phát âm thanh
-      shouldSetBadge: true,    // Set badge icon
-      shouldShowBanner: true,  // Bắt buộc trên iOS 17+
-      shouldShowList: true,    // Bắt buộc trên iOS Notification List
+      shouldPlaySound: true, // Phát âm thanh
+      shouldSetBadge: true, // Set badge icon
+      shouldShowBanner: true, // Bắt buộc trên iOS 17+
+      shouldShowList: true, // Bắt buộc trên iOS Notification List
     }),
   });
 
@@ -78,13 +85,25 @@ export default function RootLayout() {
           <Toast
             config={{
               realEstateSuccess: ({ text1, text2 }) => (
-                <RealEstateToast type="success" text1={String(text1)} text2={String(text2)} />
+                <RealEstateToast
+                  type="success"
+                  text1={String(text1)}
+                  text2={String(text2)}
+                />
               ),
               realEstateRemoved: ({ text1, text2 }) => (
-                <RealEstateToast type="removed" text1={String(text1)} text2={String(text2)} />
+                <RealEstateToast
+                  type="removed"
+                  text1={String(text1)}
+                  text2={String(text2)}
+                />
               ),
               realEstateError: ({ text1, text2 }) => (
-                <RealEstateToast type="error" text1={String(text1)} text2={String(text2)} />
+                <RealEstateToast
+                  type="error"
+                  text1={String(text1)}
+                  text2={String(text2)}
+                />
               ),
             }}
           />

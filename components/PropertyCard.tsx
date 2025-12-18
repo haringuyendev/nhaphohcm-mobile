@@ -1,9 +1,15 @@
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Heart, MapPin } from 'lucide-react-native';
+import { useUser } from '@/hooks/use-user';
 import { District, Media, Property, Province, User } from '@/types';
 import { Image } from 'expo-image';
-import { useUser } from '@/hooks/use-user';
+import { useRouter } from 'expo-router';
+import { Heart, MapPin } from 'lucide-react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
@@ -29,16 +35,16 @@ export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
 
     return `${Math.floor(diff / 31104000)} năm trước`;
   };
-  const { toggleFavorite } = useUser()
+  const { toggleFavorite } = useUser();
 
   const pricePerM2 = (() => {
     if (!property.price || !property.area) return null;
-    return Math.round((property.price / property.area) / 1_000_000);
+    return Math.round(property.price / property.area / 1_000_000);
   })();
 
   const resolveImageUrl = (relative?: string | null | undefined) => {
     if (!relative) return null;
-    if (relative.startsWith("http")) return relative;
+    if (relative.startsWith('http')) return relative;
     return `${process.env.EXPO_PUBLIC_API_URL}${relative}`;
   };
 
@@ -52,36 +58,43 @@ export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
 
       if (res?.data?.isFavorite) {
         Toast.show({
-          type: "realEstateSuccess",
-          text1: "Đã thêm vào yêu thích ❤️",
-          text2: property.title
+          type: 'realEstateSuccess',
+          text1: 'Đã thêm vào yêu thích ❤️',
+          text2: property.title,
         });
       } else {
         Toast.show({
-          type: "realEstateSuccess",
-          text1: "Đã xóa khỏi yêu thích",
-          text2: property.title
+          type: 'realEstateSuccess',
+          text1: 'Đã xóa khỏi yêu thích',
+          text2: property.title,
         });
       }
     } catch (err) {
       Toast.show({
-        type: "realEstateError",
-        text1: "Thao tác thất bại!",
-        text2: "Vui lòng thử lại.",
+        type: 'realEstateError',
+        text1: 'Thao tác thất bại!',
+        text2: 'Vui lòng thử lại.',
       });
     }
   };
 
   return (
-    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       <View style={styles.imageContainer}>
         <Image
           source={{
             uri:
               resolveImageUrl((property?.images?.[0]?.image as Media)?.url) ||
-              "https://via.placeholder.com/400x300?text=No+Image",
+              'https://via.placeholder.com/400x300?text=No+Image',
           }}
-          placeholder={((property?.images?.[0]?.image as Media)?.blurhash) || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
+          placeholder={
+            (property?.images?.[0]?.image as Media)?.blurhash ||
+            'LEHV6nWB2yk8pyo0adR*.7kCMdnj'
+          }
           style={styles.image}
           contentFit="cover"
           placeholderContentFit="cover"
@@ -93,14 +106,23 @@ export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
           </View>
         )}
 
-        <TouchableOpacity style={styles.favoriteButton} onPress={handleFavorite}>
-          <Heart size={20} color={isFavorite ? '#EF4444' : '#FFF'} fill={isFavorite ? '#EF4444' : 'transparent'} />
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={handleFavorite}
+        >
+          <Heart
+            size={20}
+            color={isFavorite ? '#EF4444' : '#FFF'}
+            fill={isFavorite ? '#EF4444' : 'transparent'}
+          />
         </TouchableOpacity>
       </View>
 
       {/* ------- CONTENT -------- */}
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>{property.title}</Text>
+        <Text style={styles.title} numberOfLines={2}>
+          {property.title}
+        </Text>
 
         {/* PRICE */}
         {pricePerM2 !== null && (
@@ -109,7 +131,9 @@ export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
 
         {/* DETAILS */}
         <View style={styles.detailsRow}>
-          {property.area && <Text style={styles.detail}>{property.area} m²</Text>}
+          {property.area && (
+            <Text style={styles.detail}>{property.area} m²</Text>
+          )}
 
           {Number(property.bedrooms) > 0 && (
             <>
@@ -130,9 +154,10 @@ export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
         <View style={styles.locationRow}>
           <MapPin size={14} color="#6B7280" />
           <Text style={styles.location} numberOfLines={1}>
-            {`${(property.district as District)?.name ?? ""}, ${(property.province as Province)?.name ?? ""}`}
+            {`${(property.district as District)?.name ?? ''}, ${
+              (property.province as Province)?.name ?? ''
+            }`}
           </Text>
-
         </View>
 
         {/* ------- FOOTER: TIME + SELLER ------- */}
@@ -142,15 +167,19 @@ export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
               <Image
                 source={{
                   uri:
-                    resolveImageUrl(((property?.seller as User)?.avatar as Media)?.url) ??
-                    "https://via.placeholder.com/80x80?text=User",
+                    resolveImageUrl(
+                      ((property?.seller as User)?.avatar as Media)?.url
+                    ) ?? 'https://via.placeholder.com/80x80?text=User',
                 }}
                 style={styles.sellerAvatar}
-                placeholder={((property?.seller as User)?.avatar as Media)?.blurhash || "LEHV6nWB2yk8pyo0adR*.7kCMdnj"}
+                placeholder={
+                  ((property?.seller as User)?.avatar as Media)?.blurhash ||
+                  'LEHV6nWB2yk8pyo0adR*.7kCMdnj'
+                }
                 contentFit="cover"
               />
               <Text style={styles.sellerName} numberOfLines={1}>
-                {(property?.seller as User)?.name ?? "Người đăng"}
+                {(property?.seller as User)?.name ?? 'Người đăng'}
               </Text>
             </View>
           )}

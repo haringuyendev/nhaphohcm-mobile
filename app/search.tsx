@@ -1,24 +1,22 @@
-import { useState, useMemo, useEffect } from "react";
+import FiltersPanel from '@/components/search/FiltersPanel';
+import { Stack } from 'expo-router';
+import { SlidersHorizontal, X } from 'lucide-react-native';
+import { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
   ActivityIndicator,
-} from "react-native";
-import { Stack } from "expo-router";
-import { SlidersHorizontal, X } from "lucide-react-native";
-import FiltersPanel from "@/components/search/FiltersPanel";
-import { SafeAreaView } from "react-native-safe-area-context";
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useGetPropertiesQuery } from "@/store/api/properties";
-import type { Property } from "@/types";
-import { PropertyCard } from "@/components/PropertyCard";
-import { SkeletonCard } from "@/components/Skeleton/PropertySkeleton";
-import { useUser } from "@/hooks/use-user";
-import { useProperties } from "@/hooks/use-properties";
+import { PropertyCard } from '@/components/PropertyCard';
+import { SkeletonCard } from '@/components/Skeleton/PropertySkeleton';
+import { useProperties } from '@/hooks/use-properties';
+import { useUser } from '@/hooks/use-user';
 
 export default function SearchScreen() {
   // UI state
@@ -49,11 +47,11 @@ export default function SearchScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["left", "right"]}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <Stack.Screen
         options={{
-          headerTitle: "Tìm kiếm",
-          headerTitleStyle: { fontWeight: "700" },
+          headerTitle: 'Tìm kiếm',
+          headerTitleStyle: { fontWeight: '700' },
         }}
       />
 
@@ -97,7 +95,7 @@ export default function SearchScreen() {
       <View style={styles.resultsHeader}>
         <Text style={styles.resultsText}>
           {propertiesLoading && page === 1
-            ? "Đang tải..."
+            ? 'Đang tải...'
             : `${results.length} kết quả`}
         </Text>
       </View>
@@ -109,18 +107,29 @@ export default function SearchScreen() {
         <FlatList
           data={results}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PropertyCard property={item} isFavorite={favorites.includes(item.id)} />}
+          renderItem={({ item }) => (
+            <PropertyCard
+              property={item}
+              isFavorite={favorites.includes(item.id)}
+            />
+          )}
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.35}
           ListFooterComponent={() =>
             propertyHasNextPage ? (
-              <ActivityIndicator size="small" color="#EF4444" style={{ padding: 20 }} />
+              <ActivityIndicator
+                size="small"
+                color="#EF4444"
+                style={{ padding: 20 }}
+              />
             ) : null
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Không tìm thấy kết quả phù hợp</Text>
+              <Text style={styles.emptyText}>
+                Không tìm thấy kết quả phù hợp
+              </Text>
             </View>
           }
         />
@@ -133,31 +142,31 @@ export default function SearchScreen() {
 // STYLES
 //
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  searchContainer: { flexDirection: "row", padding: 16, gap: 12 },
-  searchInputWrapper: { flex: 1, position: "relative" },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  searchContainer: { flexDirection: 'row', padding: 16, gap: 12 },
+  searchInputWrapper: { flex: 1, position: 'relative' },
   searchInput: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: '#E5E7EB',
   },
-  clearButton: { position: "absolute", right: 12, top: 12 },
+  clearButton: { position: 'absolute', right: 12, top: 12 },
   filterButton: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: '#FEE2E2',
     width: 48,
     height: 48,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   resultsHeader: { paddingHorizontal: 16, paddingVertical: 8 },
-  resultsText: { fontSize: 14, color: "#6B7280", fontWeight: "500" },
+  resultsText: { fontSize: 14, color: '#6B7280', fontWeight: '500' },
   listContent: { paddingBottom: 16 },
-  emptyContainer: { padding: 40, alignItems: "center" },
-  emptyText: { fontSize: 16, color: "#9CA3AF" },
+  emptyContainer: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 16, color: '#9CA3AF' },
 });

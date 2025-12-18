@@ -1,45 +1,47 @@
 // app/register.tsx
-import { View, Text, StyleSheet, Alert } from "react-native";
-import { useState } from "react";
-import { AuthInput } from "@/components/Auth/AuthInput";
-import { AuthButton } from "@/components/Auth/AuthButton";
-import { useRegisterMutation } from "@/store/api/auth";
+import { AuthButton } from '@/components/Auth/AuthButton';
+import { AuthInput } from '@/components/Auth/AuthInput';
+import { useLoginMutation, useRegisterMutation } from '@/store/api/auth';
+import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function RegisterScreen() {
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
   });
 
-  const [registerUser, { isLoading }] = useRegisterMutation();
+  const [err, setErr] = useState('');
+
+  const [register, { isLoading: isRegisterLoading }] = useRegisterMutation();
+  const [login, { isLoading: isLoginLoading }] = useLoginMutation();
+
+  const router = useRouter();
 
   const submit = async () => {
     try {
-      // Validate đơn giản
-      if (!form.name || !form.email || !form.password) {
-        Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
-        return;
-      }
+      await register(form).unwrap();
 
-      const res = await registerUser(form).unwrap(); // ⭐ unwrap để lấy data thật
+      const res = await login({
+        email: form.email,
+        password: form.password,
+      }).unwrap();
 
-      console.log("REGISTER_SUCCESS:", res);
+      // Payload CMS trả token ở res.token
+      await SecureStore.setItemAsync('token', res.token);
 
-      Alert.alert("Thành công", "Tài khoản đã được tạo!");
-
-      // Reset form
-      setForm({ name: "", email: "", password: "", phone: "" });
+      setForm({ name: '', email: '', phone: '', password: '' });
+      router.replace('/(tabs)');
     } catch (err: any) {
-      console.log("REGISTER_ERROR:", err.data.errors);
-
-      const message =
-        err?.data?.error ||
-        err?.data?.message ||
-        "Đăng ký thất bại. Vui lòng thử lại.";
-
-      Alert.alert("Lỗi", message);
+      console.log('Registration failed:', err?.data?.errors);
+      if (err?.data?.errors && err.data.errors.length > 0) {
+        const errors = err.data.errors;
+        errors[0]?.message && setErr(errors[0].message);
+      }
     }
   };
 
@@ -50,37 +52,38 @@ export default function RegisterScreen() {
       <AuthInput
         placeholder="Họ và tên"
         value={form.name}
-        onChangeText={(t:any) => setForm({ ...form, name: t })}
+        onChangeText={(t: string) => setForm({ ...form, name: t })}
+        onFocus={() => setErr('')}
       />
 
       <AuthInput
         placeholder="Email"
         value={form.email}
-        onChangeText={(t:any) => setForm({ ...form, email: t })}
-        keyboardType="email-address"
-        autoCapitalize="none"
+        onChangeText={(t: string) => setForm({ ...form, email: t })}
+        onFocus={() => setErr('')}
       />
 
       <AuthInput
-        placeholder="Phone"
+        placeholder="Số điện thoại"
         value={form.phone}
-        onChangeText={(t:any) => setForm({ ...form, phone: t })}
-        keyboardType="phone"
-        autoCapitalize="none"
+        onChangeText={(t: string) => setForm({ ...form, phone: t })}
+        onFocus={() => setErr('')}
       />
 
       <AuthInput
         placeholder="Mật khẩu"
         secure
-        value={form.password}
-        onChangeText={(t:any) => setForm({ ...form, password: t })}
+        onChangeText={(t: string) => setForm({ ...form, password: t })}
+        onFocus={() => setErr('')}
       />
 
-      <AuthButton
-        label={isLoading ? "Đang tạo..." : "Tạo tài khoản"}
-        onPress={submit}
-        disabled={isLoading}
-      />
+      {err ? (
+        <Text style={{ color: 'red', marginTop: 12, marginBottom: 12 }}>
+          {err}
+        </Text>
+      ) : null}
+
+      <AuthButton label="Tạo tài khoản" onPress={submit} />
     </View>
   );
 }
@@ -89,13 +92,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   title: {
     fontSize: 24,
-    fontWeight: "700",
-    color: "#009BA1",
+    fontWeight: '700',
+    color: '#009BA1',
     marginBottom: 24,
-    textAlign: "center",
+    textAlign: 'center',
   },
 });
