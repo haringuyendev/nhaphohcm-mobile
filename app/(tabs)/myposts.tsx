@@ -1,32 +1,67 @@
 import { Header } from '@/components/Headers/Header';
 import { PropertyCard } from '@/components/PropertyCard';
-import { useApp } from '@/hooks/use-app';
 import { mockVIPPackages } from '@/mocks/data';
 import { Stack, useRouter } from 'expo-router';
 import { Clock, Edit, EyeOff, Trash2, TrendingUp, Zap } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  useBumpPropertyMutation,
+  useUpdateVipStatusMutation,
+  useDeletePropertyPermanentlyMutation,
+  useHidePropertyMutation,
+  useRestorePropertyMutation,
+  useGetMyPropertiesByStatusQuery,
+} from '@/store/api/properties';
+import { useUser } from '@/hooks/use-user';
 
 type TabType = 'active' | 'hidden' | 'expired';
 
+const statusMap: Record<TabType, 'published' | 'deleted' | 'expired'> = {
+  active: 'published',
+  hidden: 'deleted',
+  expired: 'expired',
+};
+
 export default function MyPostsScreen() {
   const router = useRouter();
-  const { getMyProperties, updateProperty, deleteProperty, pushProperty, upgradeToVIP } = useApp();
+  const { user, favorites } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('active');
 
-  const myProperties = getMyProperties('user1');
+  const currentStatus = statusMap[activeTab];
 
-  const filteredProperties = myProperties.filter((p) => {
-    if (activeTab === 'active') return p.status === 'active';
-    if (activeTab === 'hidden') return p.status === 'hidden';
-    if (activeTab === 'expired') return p.status === 'expired';
-    return false;
-  });
+  const {
+    data: propertiesData,
+    isLoading,
+    isFetching,
+  } = useGetMyPropertiesByStatusQuery(
+    {
+      userId: user?.id || '',
+      status: currentStatus,
+      limit: 50,
+      page: 1,
+    },
+    { skip: !user?.id }
+  );
+
+  const properties = propertiesData?.docs || [];
+  const totalCount = propertiesData?.totalDocs || 0;
+
+  // Mutations
+  const [bumpProperty] = useBumpPropertyMutation();
+  const [updateVipStatus] = useUpdateVipStatusMutation();
+  const [hideProperty] = useHidePropertyMutation();
+  const [restoreProperty] = useRestorePropertyMutation();
+  const [deleteProperty] = useDeletePropertyPermanentlyMutation();
 
   const handlePush = async (id: string) => {
-    await pushProperty(id);
-    Alert.alert('Thành công', 'Đã đẩy tin lên đầu trang!');
+    try {
+      await bumpProperty(id).unwrap();
+      Alert.alert('Thành công', 'Đã đẩy tin lên đầu trang!');
+    } catch {
+      Alert.alert('Lỗi', 'Không thể đẩy tin, vui lòng thử lại');
+    }
   };
 
   const handleUpgradeVIP = (propertyId: string) => {
@@ -35,40 +70,56 @@ export default function MyPostsScreen() {
       'Chọn gói VIP để tin của bạn nổi bật hơn',
       [
         ...mockVIPPackages.map((pkg) => ({
-          text: `${pkg.name} - ${pkg.price.toLocaleString()}đ`,
+          text: `${pkg.name} - ${pkg.price.toLocaleString()}đ (+${pkg.days} ngày)`,
           onPress: async () => {
-            await upgradeToVIP(propertyId, pkg.days);
-            Alert.alert('Thành công', `Đã nâng cấp VIP ${pkg.days} ngày!`);
+            try {
+              await updateVipStatus({ id: propertyId, days: pkg.days, isVip: true }).unwrap();
+              Alert.alert('Thành công', `Đã nâng cấp VIP ${pkg.days} ngày!`);
+            } catch {
+              Alert.alert('Lỗi', 'Không thể nâng cấp VIP');
+            }
           },
         })),
-        { text: 'Hủy', style: 'cancel' as const }
+        { text: 'Hủy', style: 'cancel' },
       ]
     );
   };
 
   const handleHide = async (id: string) => {
-    await updateProperty(id, { status: 'hidden' });
-    Alert.alert('Thành công', 'Đã ẩn tin đăng');
+    try {
+      await hideProperty(id).unwrap();
+      Alert.alert('Thành công', 'Đã ẩn tin đăng');
+    } catch {
+      Alert.alert('Lỗi', 'Không thể ẩn tin');
+    }
   };
 
   const handleShow = async (id: string) => {
-    await updateProperty(id, { status: 'active' });
-    Alert.alert('Thành công', 'Đã hiển thị tin đăng');
+    try {
+      await restoreProperty(id).unwrap();
+      Alert.alert('Thành công', 'Đã hiển thị lại tin đăng');
+    } catch {
+      Alert.alert('Lỗi', 'Không thể hiển thị tin');
+    }
   };
 
   const handleDelete = (id: string) => {
     Alert.alert(
       'Xóa tin đăng',
-      'Bạn có chắc muốn xóa tin đăng này?',
+      'Bạn có chắc muốn xóa tin đăng này? Hành động này không thể hoàn tác.',
       [
         { text: 'Hủy', style: 'cancel' },
-        { 
-          text: 'Xóa', 
+        {
+          text: 'Xóa',
           style: 'destructive',
           onPress: async () => {
-            await deleteProperty(id);
-            Alert.alert('Thành công', 'Đã xóa tin đăng');
-          }
+            try {
+              await deleteProperty(id).unwrap();
+              Alert.alert('Thành công', 'Đã xóa tin đăng');
+            } catch {
+              Alert.alert('Lỗi', 'Không thể xóa tin');
+            }
+          },
         },
       ]
     );
@@ -76,139 +127,140 @@ export default function MyPostsScreen() {
 
   const renderActions = (property: any) => (
     <View style={styles.actionsContainer}>
-      {property.isVIP && (
+      {property.is_vip && (
         <View style={styles.vipBanner}>
           <Zap size={16} color="#EF4444" fill="#EF4444" />
           <Text style={styles.vipBannerText}>
-            VIP còn {Math.ceil((new Date(property.vipExpiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} ngày
+            VIP còn {Math.ceil((new Date(property.vip_expire_at).getTime() - Date.now()) / 86400000)} ngày
           </Text>
         </View>
       )}
-      
+
       <View style={styles.actionButtons}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => handlePush(property.id)}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={() => handlePush(property.id)}>
           <TrendingUp size={18} color="#10B981" />
           <Text style={[styles.actionText, { color: '#10B981' }]}>Đẩy tin</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => handleUpgradeVIP(property.id)}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={() => handleUpgradeVIP(property.id)}>
           <Zap size={18} color="#F59E0B" />
           <Text style={[styles.actionText, { color: '#F59E0B' }]}>VIP</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => router.push('/post' as any)}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push(`/post?id=${property.id}`)}>
           <Edit size={18} color="#3B82F6" />
           <Text style={[styles.actionText, { color: '#3B82F6' }]}>Sửa</Text>
         </TouchableOpacity>
 
-        {property.status === 'active' ? (
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => handleHide(property.id)}
-          >
-            <EyeOff size={18} color="#6B7280" />
-            <Text style={[styles.actionText, { color: '#6B7280' }]}>Ẩn</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => handleShow(property.id)}
-          >
+        {property.is_hidden ? (
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleShow(property.id)}>
             <EyeOff size={18} color="#10B981" />
             <Text style={[styles.actionText, { color: '#10B981' }]}>Hiện</Text>
           </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleHide(property.id)}>
+            <EyeOff size={18} color="#6B7280" />
+            <Text style={[styles.actionText, { color: '#6B7280' }]}>Ẩn</Text>
+          </TouchableOpacity>
         )}
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => handleDelete(property.id)}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={() => handleDelete(property.id)}>
           <Trash2 size={18} color="#EF4444" />
           <Text style={[styles.actionText, { color: '#EF4444' }]}>Xóa</Text>
         </TouchableOpacity>
       </View>
 
-      {property.status === 'active' && (
+      {!property.is_hidden && property.is_published && (
         <View style={styles.expiryInfo}>
           <Clock size={14} color="#6B7280" />
           <Text style={styles.expiryText}>
-            Hết hạn: {new Date(property.expiryDate).toLocaleDateString('vi-VN')}
+            Hết hạn: {property.expire_at ? new Date(property.expire_at).toLocaleDateString('vi-VN') : 'Không giới hạn'}
           </Text>
         </View>
       )}
     </View>
   );
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text>Vui lòng đăng nhập để xem tin đăng</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <Stack.Screen 
-        options={{
-          headerShown:false
-        }} 
-      />
-      <Header/>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Header />
+
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'active' && styles.tabActive]}
           onPress={() => setActiveTab('active')}
         >
           <Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>
-            Đang hiển thị ({myProperties.filter((p) => p.status === 'active').length})
+            Đang hiển thị {activeTab === 'active' ? `(${totalCount})` : ''}
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.tab, activeTab === 'hidden' && styles.tabActive]}
           onPress={() => setActiveTab('hidden')}
         >
           <Text style={[styles.tabText, activeTab === 'hidden' && styles.tabTextActive]}>
-            Đã ẩn ({myProperties.filter((p) => p.status === 'hidden').length})
+            Đã ẩn {activeTab === 'hidden' ? `(${totalCount})` : ''}
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.tab, activeTab === 'expired' && styles.tabActive]}
           onPress={() => setActiveTab('expired')}
         >
           <Text style={[styles.tabText, activeTab === 'expired' && styles.tabTextActive]}>
-            Hết hạn ({myProperties.filter((p) => p.status === 'expired').length})
+            Hết hạn {activeTab === 'expired' ? `(${totalCount})` : ''}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={filteredProperties}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View>
-            <PropertyCard property={item} />
-            {renderActions(item)}
-          </View>
-        )}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Chưa có tin đăng nào</Text>
-            <TouchableOpacity 
-              style={styles.createButton}
-              onPress={() => router.push('/post' as any)}
-            >
-              <Text style={styles.createButtonText}>Đăng tin ngay</Text>
-            </TouchableOpacity>
-          </View>
-        }
-      />
+      {(isLoading || isFetching) ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#EF4444" />
+          <Text style={{ marginTop: 12, color: '#6B7280' }}>Đang tải tin đăng...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={properties}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View>
+              <PropertyCard property={item} isFavorite={favorites.includes(item.id)} />
+              {renderActions(item)}
+            </View>
+          )}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {activeTab === 'active' && 'Chưa có tin đang hiển thị'}
+                {activeTab === 'hidden' && 'Chưa có tin nào bị ẩn'}
+                {activeTab === 'expired' && 'Chưa có tin nào hết hạn'}
+              </Text>
+              <TouchableOpacity style={styles.createButton} onPress={() => router.push('/post')}>
+                <Text style={styles.createButtonText}>Đăng tin ngay</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
 
+// Styles giữ nguyên
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -233,11 +285,11 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     color: '#6B7280',
-    fontWeight: '500' as const,
+    fontWeight: '500',
   },
   tabTextActive: {
     color: '#EF4444',
-    fontWeight: '600' as const,
+    fontWeight: '600',
   },
   listContent: {
     paddingBottom: 16,
@@ -264,7 +316,7 @@ const styles = StyleSheet.create({
   vipBannerText: {
     fontSize: 13,
     color: '#EF4444',
-    fontWeight: '600' as const,
+    fontWeight: '600',
     marginLeft: 6,
   },
   actionButtons: {
@@ -284,7 +336,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    fontWeight: '500' as const,
+    fontWeight: '500',
   },
   expiryInfo: {
     flexDirection: 'row',
@@ -314,6 +366,6 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '600' as const,
+    fontWeight: '600',
   },
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useMeQuery } from "@/store/api/auth";
 import { User } from "@/types";
 import { useToggleFavoriteMutation } from "@/store/api/user";
@@ -8,8 +8,10 @@ export function useUser() {
   const { data, refetch, isLoading } = useMeQuery();
   const [toggleFavoriteAPI] = useToggleFavoriteMutation();
   
-
   const favoriteProperties=useMemo(()=>{
+    return data?.user?.favoriteProperties ?? [];
+  },[data])
+  const favoritePropertiesId=useMemo(()=>{
     return data?.user?.favoriteProperties.map((p:any)=>p.id) ?? [];
   },[data])
 
@@ -21,7 +23,8 @@ export function useUser() {
 
   return {
     user,
-    favorites: favoriteProperties,
+    favorites: favoritePropertiesId,
+    favoriteProperties,
     toggleFavorite:toggleFavoriteAPI,
     setUser,       // Nếu muốn set trực tiếp
     reloadUser: refetch,

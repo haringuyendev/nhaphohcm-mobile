@@ -22,6 +22,7 @@ export const baseApi = createApi({
     "User",
     "PropertyTypes",
     "Properties",
+    "MyProperties",
     "Conversations",
     "Messages",
     "Communities",
@@ -31,6 +32,7 @@ export const baseApi = createApi({
     "PostLikes",
     "Provinces",
     "Districts",
+    "Media",
     "Wards",
   ],
 

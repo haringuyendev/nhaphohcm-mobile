@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   TextInput,
   Alert,
   Modal,
@@ -15,37 +15,51 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Upload, ChevronDown } from 'lucide-react-native';
-import { useApp } from '@/hooks/use-app';
-import { PropertyType, TransactionType, Direction, PropertyImage } from '@/types/property';
-import { provinces, districtsByProvince, wardsByDistrict } from '@/mocks/data';
+import { TransactionType, Direction, PropertyImage } from '@/types/property';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCreatePropertyMutation } from '@/store/api/properties';
+import { useGetDistrictsQuery, useGetPropertyTypesQuery, useGetProvincesQuery, useGetWardsQuery } from '@/store/api/filter-api';
+import { useCreateMediaMutation } from '@/store/api/media';
+import { useUser } from '@/hooks/use-user';
+import { District, Province, Ward } from '@/types';
+import { markdownToLexical } from '@/utils/lexical_converter';
+// Adjust path as needed
 
 const STEPS = ['Loại BĐS', 'Địa chỉ', 'Thông tin', 'Hình ảnh', 'Hoàn tất'];
 
 export default function PostScreen() {
   const router = useRouter();
-  const { addProperty } = useApp();
+  const [createProperty] = useCreatePropertyMutation();
+  const [createMedia] = useCreateMediaMutation();
+
+  const { user } = useUser()
+  const [province, setProvince] = useState<Province | null>(null); // ID
+  const [district, setDistrict] = useState<District | null>(null); // ID
+  const [ward, setWard] = useState<Ward | null>(null); // ID
+  const [street, setStreet] = useState('');
+  const [markdownDescription, setMarkdownDescription] = useState<string>('');
+
+  const { data: propertyTypes = [] } = useGetPropertyTypesQuery();
+  const { data: provinces = [] } = useGetProvincesQuery();
+  const { data: districts = [] } = useGetDistrictsQuery({ provinceCode: province?.code }, { skip: !province });
+  const { data: wards = [] } = useGetWardsQuery({ districtCode: district?.code }, { skip: !district });
 
   const [step, setStep] = useState(0);
 
   const [transactionType, setTransactionType] = useState<TransactionType>('sale');
-  const [propertyType, setPropertyType] = useState<PropertyType>('house');
+  const [propertyType, setPropertyType] = useState<string>(''); // ID of property_type
 
-  const [province, setProvince] = useState('');
-  const [district, setDistrict] = useState('');
-  const [ward, setWard] = useState('');
-  const [street, setStreet] = useState('');
 
-  const [modalData, setModalData] = useState<string[]>([]);
+
+  const [modalData, setModalData] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalField, setModalField] = useState({
     title: "",
     value: "",
-    
   });
 
   const [price, setPrice] = useState('');
-  const [priceUnit, setPriceUnit] = useState<'million'|'billion'>('billion');
+  const [priceUnit, setPriceUnit] = useState<'million' | 'billion'>('billion');
   const [area, setArea] = useState('');
   const [bedrooms, setBedrooms] = useState('');
   const [bathrooms, setBathrooms] = useState('');
@@ -55,29 +69,29 @@ export default function PostScreen() {
   const [images, setImages] = useState<PropertyImage[]>([]);
 
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
 
-  const openModal = (field: {title:string; value:string}) => {
+  const openModal = (field: { title: string; value: string }) => {
     setModalField(field);
 
     if (field.value === 'province') setModalData(provinces);
-    if (field.value === 'district') setModalData(districtsByProvince[province] || []);
-    if (field.value === 'ward') setModalData(wardsByDistrict[district] || []);
+    if (field.value === 'district') setModalData(districts);
+    if (field.value === 'ward') setModalData(wards);
+    if (field.value === 'propertyType') setModalData(propertyTypes); // Added for propertyType if needed, but using cards
 
     setModalVisible(true);
   };
 
-  const handleSelect = (item: string) => {
+  const handleSelect = (item: any) => {
     if (modalField.value === 'province') {
       setProvince(item);
-      setDistrict('');
-      setWard('');
+      setDistrict(null);
+      setWard(null);
     }
     if (modalField.value === 'district') {
       setDistrict(item);
-      setWard('');
+      setWard(null);
     }
     if (modalField.value === 'ward') {
       setWard(item);
@@ -92,17 +106,18 @@ export default function PostScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
-      quality: 0.8
+      quality: 0.8,
+      // allowsEditing: true, // nếu muốn crop
     });
 
     if (!result.canceled) {
-      const newImgs = result.assets.map((a, i) => ({
-        id: Date.now().toString() + i,
-        uri: a.uri
+      const newImgs: PropertyImage[] = result.assets.map((asset, index) => ({
+        id: `${Date.now()}-${index}`,
+        uri: asset.uri,
       }));
-      setImages([...images, ...newImgs].slice(0,20));
+      setImages(prev => [...prev, ...newImgs].slice(0, 20));
     }
   };
 
@@ -115,53 +130,85 @@ export default function PostScreen() {
     if (step === 1) return province && district && ward;
     if (step === 2) return price && area;
     if (step === 3) return images.length > 0;
-    if (step === 4) return title && description && contactName && contactPhone;
+    if (step === 4) return title && markdownDescription && contactName && contactPhone;
     return true;
   };
 
   const handleSubmit = async () => {
-    const fullAddress = `${street ? street + ", " : ""}${ward}, ${district}, ${province}`;
+    try {
+      // Upload images
+      const uploadedImages = [];
+      for (let index = 0; index < images.length; index++) {
+        const img = images[index];
+        const formData = new FormData();
 
-    const priceVal = parseFloat(price);
-    const areaVal = parseFloat(area);
-    const pricePerM2 =
-      priceUnit === 'billion'
-        ? (priceVal * 1000) / areaVal
-        : priceVal / areaVal;
+        // Append file (field name PHẢI là 'file')
+        formData.append('file', {
+          uri: img.uri,
+          name: `property_${Date.now()}_${index}.jpg`,
+          type: 'image/jpeg',
+        } as any);
 
-    await addProperty({
-      title,
-      description,
-      price: priceVal,
-      priceUnit,
-      pricePerM2,
-      area: areaVal,
-      bedrooms: bedrooms ? parseInt(bedrooms) : undefined,
-      bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
-      floors: floors ? parseInt(floors) : undefined,
-      direction,
-      propertyType,
-      transactionType,
-      location: {
-        province,
-        district,
-        ward,
-        street,
-        fullAddress
-      },
-      images,
-      contactName,
-      contactPhone,
-      contactZalo: contactPhone,
-      isVIP: false,
-      status: 'active',
-      expiryDate: new Date(Date.now() + 30*24*60*60*1000).toISOString(),
-      userId: "user1"
-    });
+        // Append alt text (và các field khác nếu cần)
+        // Ở đây mình dùng title property làm alt, hoặc fallback "Ảnh đại diện" / "Ảnh chi tiết"
+        const altText = index === 0
+          ? `Ảnh đại diện: ${title || 'Tin đăng bất động sản'}`
+          : `Ảnh chi tiết ${index + 1}: ${title || 'Tin đăng bất động sản'}`;
 
-    Alert.alert("Thành công", "Tin đăng của bạn đã được đăng!", [
-      { text: "OK", onPress: () => router.push('/myposts' as any) }
-    ]);
+        const payloadJson = JSON.stringify({
+          alt: altText,
+          // Nếu có field khác required (ví dụ caption, title...), thêm vào đây
+        });
+
+        formData.append('_payload', payloadJson);
+
+        const mediaResponse = await createMedia(formData).unwrap();
+
+        // Payload thường trả về { doc: { id } } hoặc trực tiếp { id }
+        const mediaId = mediaResponse.doc?.id || mediaResponse.id;
+        uploadedImages.push({ image: mediaId });
+      }
+
+      // Prepare data
+      const wardName = wards.find(w => w.id === ward?.id)?.name || '';
+      const districtName = districts.find(d => d.id === district?.id)?.name || '';
+      const provinceName = provinces.find(p => p.id === province?.id)?.name || '';
+
+      const fullAddress = `${street ? street + ", " : ""}${wardName}, ${districtName}, ${provinceName}`;
+
+      const priceVal = parseFloat(price) * (priceUnit === 'billion' ? 1000000000 : 1000000);
+      const descriptionLexicalJson = markdownToLexical(markdownDescription);
+      console.log(descriptionLexicalJson);
+      
+      const data = {
+        title,
+        type: propertyType, // ID from relationship
+        price: priceVal,
+        area: parseFloat(area),
+        bedrooms: parseInt(bedrooms) || undefined,
+        bathrooms: parseInt(bathrooms) || undefined,
+        address: fullAddress,
+        description: JSON.parse(descriptionLexicalJson),
+        // description, // Assume server converts to richText if needed
+        images: uploadedImages,
+        province: province?.id,
+        district: district?.id,
+        ward: ward?.id,
+        is_published: true,
+        is_hidden: false,
+        is_vip: false,
+        seller: user?.id,
+      };
+
+      await createProperty(data).unwrap();
+
+      Alert.alert("Thành công", "Tin đăng của bạn đã được đăng!", [
+        { text: "OK", onPress: () => router.push('/myposts' as any) }
+      ]);
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể đăng tin. Vui lòng thử lại.");
+      console.error(error);
+    }
   };
 
   const next = () => {
@@ -181,8 +228,8 @@ export default function PostScreen() {
 
         <View style={{ gap: 10 }}>
           {[
-            { label: "Bán", value: "sale"},
-            { label: "Cho thuê", value: "rent"},
+            { label: "Bán", value: "sale" },
+            { label: "Cho thuê", value: "rent" },
           ].map(item => (
             <TouchableOpacity
               key={item.value}
@@ -203,26 +250,19 @@ export default function PostScreen() {
         <Text style={[styles.title, { marginTop: 20 }]}>Loại BĐS</Text>
 
         <View style={{ gap: 10 }}>
-          {[
-            { label: "Căn hộ", value: "apartment" },
-            { label: "Nhà phố", value: "house" },
-            { label: "Biệt thự", value: "villa" },
-            { label: "Đất", value: "land" },
-            { label: "Văn phòng", value: "office" },
-            { label: "Phòng trọ", value: "motel" },
-          ].map(item => (
+          {propertyTypes.map(item => (
             <TouchableOpacity
-              key={item.value}
+              key={item.id}
               style={[
                 styles.cardOption,
-                propertyType === item.value && styles.cardOptionActive
+                propertyType === item.id && styles.cardOptionActive
               ]}
-              onPress={() => setPropertyType(item.value as PropertyType)}
+              onPress={() => setPropertyType(item.id)}
             >
               <Text style={[
                 styles.cardOptionText,
-                propertyType === item.value && styles.cardOptionTextActive
-              ]}>{item.label}</Text>
+                propertyType === item.id && styles.cardOptionTextActive
+              ]}>{item.label || item.value}</Text> {/* Assume 'name' field */}
             </TouchableOpacity>
           ))}
         </View>
@@ -235,25 +275,25 @@ export default function PostScreen() {
 
         <Text style={styles.label}>Tỉnh/Thành phố *</Text>
         <DropdownField
-          value={province}
+          value={provinces.find(p => p.id === province?.id)?.name}
           placeholder="Chọn Tỉnh/Thành phố"
-          onPress={() => openModal({ title: 'Tỉnh/Thành phố', value: province })}
+          onPress={() => openModal({ title: 'Tỉnh/Thành phố', value: 'province' })}
         />
 
         <Text style={styles.label}>Quận/Huyện *</Text>
         <DropdownField
-          value={district}
+          value={districts.find(d => d.id === district?.id)?.name}
           placeholder="Chọn Quận/Huyện"
           disabled={!province}
-          onPress={() => province && openModal({ title: 'Quận/Huyện', value: district })}
+          onPress={() => province && openModal({ title: 'Quận/Huyện', value: 'district' })}
         />
 
         <Text style={styles.label}>Phường/Xã *</Text>
         <DropdownField
-          value={ward}
+          value={wards.find(w => w.id === ward?.id)?.name}
           placeholder="Chọn Phường/Xã"
           disabled={!district}
-          onPress={() => district && openModal({ title: 'Phường/Xã', value: ward })}
+          onPress={() => district && openModal({ title: 'Phường/Xã', value: 'ward' })}
         />
 
         <Text style={styles.label}>Tên đường</Text>
@@ -282,18 +322,18 @@ export default function PostScreen() {
             placeholderTextColor="#9CA3AF"
           />
 
-          <TouchableOpacity 
-            style={[styles.unitBtn, priceUnit==='million' && styles.unitBtnActive]}
+          <TouchableOpacity
+            style={[styles.unitBtn, priceUnit === 'million' && styles.unitBtnActive]}
             onPress={() => setPriceUnit("million")}
           >
-            <Text style={[styles.unitText, priceUnit==='million' && styles.unitTextActive]}>Triệu</Text>
+            <Text style={[styles.unitText, priceUnit === 'million' && styles.unitTextActive]}>Triệu</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.unitBtn, priceUnit==='billion' && styles.unitBtnActive]}
+          <TouchableOpacity
+            style={[styles.unitBtn, priceUnit === 'billion' && styles.unitBtnActive]}
             onPress={() => setPriceUnit("billion")}
           >
-            <Text style={[styles.unitText, priceUnit==='billion' && styles.unitTextActive]}>Tỷ</Text>
+            <Text style={[styles.unitText, priceUnit === 'billion' && styles.unitTextActive]}>Tỷ</Text>
           </TouchableOpacity>
         </View>
 
@@ -359,10 +399,10 @@ export default function PostScreen() {
           ].map(item => (
             <TouchableOpacity
               key={item.value}
-              style={[styles.cardOption, direction===item.value && styles.cardOptionActive]}
+              style={[styles.cardOption, direction === item.value && styles.cardOptionActive]}
               onPress={() => setDirection(item.value as Direction)}
             >
-              <Text style={[styles.cardOptionText, direction===item.value && styles.cardOptionTextActive]}>
+              <Text style={[styles.cardOptionText, direction === item.value && styles.cardOptionTextActive]}>
                 {item.label}
               </Text>
             </TouchableOpacity>
@@ -393,7 +433,7 @@ export default function PostScreen() {
                 </View>
               )}
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.removeImg}
                 onPress={() => removeImage(img.id)}
               >
@@ -422,9 +462,9 @@ export default function PostScreen() {
         <TextInput
           style={[styles.input, { height: 150, textAlignVertical: 'top' }]}
           multiline
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Nhập mô tả chi tiết..."
+          placeholder="Nhập mô tả..."
+          value={markdownDescription}
+          onChangeText={setMarkdownDescription}
           placeholderTextColor="#9CA3AF"
         />
 
@@ -454,7 +494,7 @@ export default function PostScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: 'Đăng tin',
           headerTitleStyle: { fontWeight: '700' },
@@ -495,7 +535,7 @@ export default function PostScreen() {
       </View>
 
       <Modal visible={modalVisible} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: '#fff' }}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Text style={styles.modalClose}>Hủy</Text>
@@ -506,13 +546,13 @@ export default function PostScreen() {
 
           <FlatList
             data={modalData}
-            keyExtractor={(item) => item}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalItem}
                 onPress={() => handleSelect(item)}
               >
-                <Text style={styles.modalItemText}>{item}</Text>
+                <Text style={styles.modalItemText}>{item.name}</Text> {/* Assume 'name' field */}
               </TouchableOpacity>
             )}
           />
@@ -524,7 +564,7 @@ export default function PostScreen() {
 
 function DropdownField({ value, onPress, placeholder, disabled }: any) {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.dropdown, disabled && { opacity: 0.5 }]}
       onPress={onPress}
       disabled={disabled}

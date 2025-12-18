@@ -19,7 +19,7 @@ export function RealEstateToast({ text1, text2, type = "info" }: RealEstateToast
   };
 
   const backgrounds: Record<ToastType, string> = {
-    success: "#EF4444",
+    success: "#ff0000ff",
     removed: "#6B7280",
     error: "#DC2626",
     info: "#3B82F6",

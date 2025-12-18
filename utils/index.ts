@@ -86,6 +86,8 @@ export function buildWhereFromParams(params: any) {
           { expire_at: { greater_than_equal: new Date().toISOString() } },
         ],
       },
+      ...(params.is_vip ? [{ is_vip: { equals: params.is_vip } }] : []),
+      ...(params.seller ? [{ seller: { equals: params.seller } }] : []),
       ...(searchConditions.length ? [{ or: searchConditions }] : []),
       ...(params.type ? [{ 'type.value': { equals: params.type } }] : []),
       ...(params.district
@@ -110,19 +112,21 @@ export function buildWhereFromParams(params: any) {
   return where;
 }
 
-export function buildWhereFromStatus(params: any) {
+export function buildWhereFromStatus(params: {
+  userId: string;
+  status?: 'published' | 'unpublished' | 'deleted' | 'expired' | 'expiring';
+  search?: string;
+}) {
   const now = new Date().toISOString();
   const fiveDaysLater = new Date(
     Date.now() + 5 * 24 * 60 * 60 * 1000
   ).toISOString();
 
   let where: any = {
-    seller: { equals: params.user?.id },
+    seller: { equals: params.userId },
   };
 
-  const status = params.status;
-
-  if (status) {
+  if (params.status) {
     const conditions: any[] = [];
 
     switch (status) {
@@ -165,18 +169,16 @@ export function buildWhereFromStatus(params: any) {
     where = { and: [where, ...conditions] };
   }
 
-  // ---- SEARCH ----
+  // Search (nếu cần tìm trong tab)
   if (params.search?.trim()) {
     const s = params.search.trim();
-
     const searchConditions = {
       or: [
-        { title: { contains: s } },
-        { address: { contains: s } },
-        { description: { contains: s } },
+        { title: { contains: s, mode: 'insensitive' } },
+        { address: { contains: s, mode: 'insensitive' } },
+        { description: { contains: s, mode: 'insensitive' } },
       ],
     };
-
     where = { and: [where, searchConditions] };
   }
 
