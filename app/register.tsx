@@ -72,7 +72,6 @@ export default function RegisterScreen() {
 
       <AuthInput
         placeholder="Mật khẩu"
-        value={form.password}
         secure
         onChangeText={(t: string) => setForm({ ...form, password: t })}
         onFocus={() => setErr('')}

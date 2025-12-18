@@ -1,13 +1,13 @@
-import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useSession } from "@/hooks/use-session";
 import { Redirect, Tabs } from "expo-router";
 import { Home, FileText, User, Users, PlusCircle } from "lucide-react-native";
 import React from "react";
 import { View } from "react-native";
 
+
 export default function TabLayout() {
   const { tokenChecked, token, isAuthenticated } = useSession();
-
+  
   if (!tokenChecked) return null;
 
   if (!isAuthenticated) {

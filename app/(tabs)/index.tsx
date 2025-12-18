@@ -2,12 +2,16 @@ import { Banner } from '@/components/Banner';
 import { CategoryCard } from '@/components/CategoryCard';
 import { Header } from '@/components/Headers/Header';
 import { PropertyCard } from '@/components/PropertyCard';
-import { mockBanners, mockCategories } from '@/mocks/data';
-import { useGetPropertiesQuery } from '@/store/api/properties';
-import { Property } from '@/types';
+import { SkeletonCard } from '@/components/Skeleton/PropertySkeleton';
+import { mockBanners } from '@/mocks/data';
+
+import { useProperties } from '@/hooks/use-properties';
+import { useUser } from '@/hooks/use-user';
+import { PropertyType } from '@/types';
+
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ScrollView,
   StyleSheet,
@@ -19,110 +23,133 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
-  const { data, refetch } = useGetPropertiesQuery({});
+  const { favorites, toggleFavorite } = useUser(); // ⭐ Lấy danh sách ID yêu thích
 
-  const vipProperties = data?.docs.filter((p: Property) => p.is_vip) || [];
-  const allProperties = data?.docs.filter((p: Property) => !p.is_vip) || [];
+  const {
+    properties,
+    vip_properties,
+    handleLoadMore,
+    handleRefetch,
+    propertyTypes,
+    propertiesLoading,
+    propertyHasNextPage,
+  } = useProperties();
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await refetch();
-    setTimeout(() => setRefreshing(false), 1000);
-  };
+  const normalProperties = properties.filter((p) => !p.is_vip);
 
-  const handleCategoryPress = (category: any) => {
+  const renderSkeleton = () => (
+    <FlatList
+      data={[1, 2, 3, 4, 5]}
+      keyExtractor={(i, index) => `sk-${index}`}
+      renderItem={() => <SkeletonCard />}
+      contentContainerStyle={styles.listContent}
+    />
+  );
+
+  const handleCategoryPress = (category: PropertyType) => {
     router.push({
       pathname: '/search',
-      params: {
-        transactionType: category.transactionType,
-        propertyType: category.propertyType || '',
-      },
+      params: { propertyType: category.value },
     } as any);
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <Stack.Screen
-        options={{
-          headerShown: false,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       <Header />
-      <FlatList
-        data={allProperties}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <PropertyCard property={item} />}
-        ListHeaderComponent={() => (
-          <View>
-            <Banner banners={mockBanners} />
+      {/* MAIN LIST */}
+      {propertiesLoading ? (
+        renderSkeleton()
+      ) : (
+        <FlatList
+          data={normalProperties}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <PropertyCard
+              property={item}
+              isFavorite={favorites.includes(item.id)} // ⭐ Check yêu thích
+            />
+          )}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.3}
+          refreshing={propertiesLoading}
+          onRefresh={handleRefetch}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={() => (
+            <View>
+              {/* BANNER */}
+              <Banner banners={mockBanners} />
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Danh mục</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoriesContainer}
-              >
-                {mockCategories.map((category) => (
-                  <CategoryCard
-                    key={category.id}
-                    category={category}
-                    onPress={() => handleCategoryPress(category)}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-
-            {vipProperties.length > 0 && (
+              {/* CATEGORY */}
               <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Tin VIP nổi bật</Text>
-                  <TouchableOpacity>
-                    <Text style={styles.seeAll}>Xem tất cả</Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={styles.sectionTitle}>Danh mục</Text>
+
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.vipContainer}
+                  contentContainerStyle={styles.categoriesContainer}
                 >
-                  {vipProperties.slice(0, 5).map((property: Property) => (
-                    <View key={property.id} style={styles.vipCard}>
-                      <PropertyCard property={property} />
-                    </View>
+                  {propertyTypes.map((category) => (
+                    <CategoryCard
+                      key={category.id}
+                      category={category}
+                      onPress={() => handleCategoryPress(category)}
+                    />
                   ))}
                 </ScrollView>
               </View>
-            )}
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tin đăng mới nhất</Text>
+              {/* VIP */}
+              {vip_properties.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Tin VIP nổi bật</Text>
+                    <TouchableOpacity>
+                      <Text style={styles.seeAll}>Xem tất cả</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.vipContainer}
+                  >
+                    {vip_properties.slice(0, 5).map((property) => (
+                      <View key={property.id} style={styles.vipCard}>
+                        <PropertyCard
+                          property={property}
+                          isFavorite={favorites.includes(property.id)}
+                        />
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Tin đăng mới nhất</Text>
+              </View>
             </View>
-          </View>
-        )}
-        onRefresh={handleRefresh}
-        refreshing={refreshing}
-        contentContainerStyle={styles.listContent}
-      />
+          )}
+          ListFooterComponent={() =>
+            propertyHasNextPage ? (
+              <ActivityIndicator
+                size="small"
+                color="#EF4444"
+                style={{ paddingVertical: 20 }}
+              />
+            ) : null
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  searchButton: {
-    marginRight: 16,
-  },
-  listContent: {
-    paddingBottom: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  listContent: { paddingBottom: 16 },
+  section: { marginBottom: 24 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -132,23 +159,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: '#111827',
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-  seeAll: {
-    fontSize: 14,
-    color: '#EF4444',
-    fontWeight: '600' as const,
-  },
-  categoriesContainer: {
-    paddingHorizontal: 16,
-  },
-  vipContainer: {
-    paddingHorizontal: 0,
-  },
-  vipCard: {
-    marginLeft: 0,
-  },
+  seeAll: { fontSize: 14, color: '#EF4444', fontWeight: '600' },
+  categoriesContainer: { paddingHorizontal: 16 },
+  vipContainer: { paddingHorizontal: 0 },
+  vipCard: { marginLeft: 0 },
 });

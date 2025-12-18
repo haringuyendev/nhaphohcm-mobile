@@ -1,6 +1,7 @@
 import { Property } from "@/types";
 import { baseApi } from "./index";
-import { buildWhereFromParams, buildWhereFromStatus, encodePayloadWhere, encodeWhere } from "@/utils";
+import { buildWhereFromParams, buildWhereFromStatus, encodePayloadWhere, encodeWhere, generatePayloadQuery } from "@/utils";
+import qs from "qs";
 
 export const propertiesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -12,23 +13,19 @@ export const propertiesApi = baseApi.injectEndpoints({
         const limit = validLimits.includes(Number(params.limit))
           ? Number(params.limit)
           : 10;
-
+    
         const page = Number(params.page) || 1;
-
+    
         const where = buildWhereFromParams(params);
-
-        return {
-          url: `/api/properties`,
-          method: "GET",
-          params: {
-            limit,
-            page,
-            where: encodePayloadWhere(where),
-            sort: "-is_vip,-bumped_at,-created_at",
-          },
-        };
+        
+        return generatePayloadQuery({
+          path:'/api/properties',
+          where,
+          limit,
+          page
+        })
       },
-
+    
       providesTags: ["Properties"],
     }),
 
@@ -96,8 +93,6 @@ export const propertiesApi = baseApi.injectEndpoints({
       invalidatesTags: ["Properties"],
     }),
   }),
-
-  overrideExisting: false,
 });
 
 export const {

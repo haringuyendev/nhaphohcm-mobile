@@ -1,15 +1,56 @@
-import { provinces, districtsByProvince } from "@/mocks/data";
-import { SearchFilters } from "@/types/property";
+import { useState, useEffect } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { X } from "lucide-react-native";
-import { useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from "react-native";
 
-export default function FiltersPanel({ filters, onApply, onClose }: { 
-  filters: SearchFilters; 
+import {
+  useGetProvincesQuery,
+  useGetDistrictsQuery,
+  useGetWardsQuery,
+  useGetPropertyTypesQuery,
+} from "@/store/api/filter-api";
+import { SearchFilters } from "@/app/search";
+
+export default function FiltersPanel({
+  filters,
+  onApply,
+  onClose,
+}: {
+  filters: SearchFilters;
   onApply: (filters: SearchFilters) => void;
   onClose: () => void;
 }) {
   const [localFilters, setLocalFilters] = useState<SearchFilters>(filters);
+
+  // LOAD PROVINCES
+  // const { data: provinces = [], isLoading: loadingProvinces } = useGetProvincesQuery();
+
+  // LOAD DISTRICTS
+  const { data: districts = [], isLoading: loadingDistricts } = useGetDistrictsQuery(
+    { provinceCode: localFilters.province },
+    { skip: !localFilters.province }
+  );
+
+  // LOAD WARDS
+  const { data: wards = [], isLoading: loadingWards } = useGetWardsQuery(
+    { districtCode: localFilters.district },
+    { skip: !localFilters.district }
+  );
+  console.log(wards.length,localFilters.district)
+
+  // PROPERTY TYPES
+  const { data: propertyTypes = [], isLoading: loadingTypes } = useGetPropertyTypesQuery();
+
+  // useEffect(() => {
+  //   if (!localFilters.province) {
+  //     setLocalFilters((prev: SearchFilters) => ({ ...prev, district: undefined, ward: undefined }));
+  //   }
+  // }, [localFilters.province]);
+
+  useEffect(() => {
+    if (!localFilters.district) {
+      setLocalFilters((prev: SearchFilters) => ({ ...prev, ward: undefined }));
+    }
+  }, [localFilters.district]);
 
   return (
     <View style={styles.filtersPanel}>
@@ -21,206 +62,235 @@ export default function FiltersPanel({ filters, onApply, onClose }: {
       </View>
 
       <ScrollView style={styles.filterContent}>
-        <View style={styles.filterGroup}>
-          <Text style={styles.filterLabel}>Loại giao dịch</Text>
-          <View style={styles.filterRow}>
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                localFilters.transactionType === 'sale' && styles.filterChipActive,
-              ]}
-              onPress={() => setLocalFilters({ ...localFilters, transactionType: 'sale' })}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  localFilters.transactionType === 'sale' && styles.filterChipTextActive,
-                ]}
-              >
-                Bán
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                localFilters.transactionType === 'rent' && styles.filterChipActive,
-              ]}
-              onPress={() => setLocalFilters({ ...localFilters, transactionType: 'rent' })}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  localFilters.transactionType === 'rent' && styles.filterChipTextActive,
-                ]}
-              >
-                Cho thuê
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
+        {/* PROPERTY TYPES */}
         <View style={styles.filterGroup}>
-          <Text style={styles.filterLabel}>Tỉnh/Thành phố</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.filterRow}>
-              {provinces.map((province) => (
-                <TouchableOpacity
-                  key={province}
-                  style={[
-                    styles.filterChip,
-                    localFilters.province === province && styles.filterChipActive,
-                  ]}
-                  onPress={() => setLocalFilters({ ...localFilters, province, district: undefined })}
-                >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      localFilters.province === province && styles.filterChipTextActive,
-                    ]}
-                  >
-                    {province}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
+          <Text style={styles.filterLabel}>Loại bất động sản</Text>
 
-        {localFilters.province && districtsByProvince[localFilters.province] && (
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Quận/Huyện</Text>
+          {loadingTypes ? (
+            <ActivityIndicator size="small" color="#EF4444" />
+          ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.filterRow}>
-                {districtsByProvince[localFilters.province].map((district) => (
+                {propertyTypes.map((pt) => (
                   <TouchableOpacity
-                    key={district}
+                    key={pt.id}
                     style={[
                       styles.filterChip,
-                      localFilters.district === district && styles.filterChipActive,
+                      localFilters.type === pt.value && styles.filterChipActive,
                     ]}
-                    onPress={() => setLocalFilters({ ...localFilters, district })}
+                    onPress={() =>
+                      setLocalFilters({ ...localFilters, type: pt.value as string })
+                    }
                   >
                     <Text
                       style={[
                         styles.filterChipText,
-                        localFilters.district === district && styles.filterChipTextActive,
+                        localFilters.type === pt.value && styles.filterChipTextActive,
                       ]}
                     >
-                      {district}
+                      {pt.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </ScrollView>
+          )}
+        </View>
+
+        {/* PROVINCES */}
+        {/* <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>Tỉnh/Thành phố</Text>
+
+          {loadingProvinces ? (
+            <ActivityIndicator size="small" color="#EF4444" />
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.filterRow}>
+                {provinces.map((p) => (
+                  <TouchableOpacity
+                    key={p.code}
+                    style={[
+                      styles.filterChip,
+                      localFilters.province === p.code.toString() && styles.filterChipActive,
+                    ]}
+                    onPress={() =>
+                      setLocalFilters({
+                        ...localFilters,
+                        province: p.code.toString(),
+                        district: undefined,
+                        ward: undefined,
+                      })
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        localFilters.province === p.code.toString() && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+        </View> */}
+
+        {/* DISTRICTS */}
+        {localFilters.province && (
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterLabel}>Quận/Huyện</Text>
+
+            {loadingDistricts ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterRow}>
+                  {districts.map((d) => (
+                    <TouchableOpacity
+                      key={d.code}
+                      style={[
+                        styles.filterChip,
+                        localFilters.district === d.code.toString() && styles.filterChipActive,
+                      ]}
+                      onPress={() =>
+                        setLocalFilters({
+                          ...localFilters,
+                          district: d.code.toString(),
+                          ward: undefined,
+                        })
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          localFilters.district === d.code.toString() && styles.filterChipTextActive,
+                        ]}
+                      >
+                        {d.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        )}
+
+        {/* WARDS */}
+        {localFilters.district && (
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterLabel}>Phường/Xã</Text>
+
+            {loadingWards ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterRow}>
+                  {wards.map((w) => (
+                    <TouchableOpacity
+                      key={w.code}
+                      style={[
+                        styles.filterChip,
+                        localFilters.ward === w.code.toString() && styles.filterChipActive,
+                      ]}
+                      onPress={() =>
+                        setLocalFilters({
+                          ...localFilters,
+                          ward: w.code.toString(),
+                        })
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          localFilters.ward === w.code.toString() && styles.filterChipTextActive,
+                        ]}
+                      >
+                        {w.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            )}
           </View>
         )}
       </ScrollView>
 
       <View style={styles.filterActions}>
-        <TouchableOpacity 
-          style={styles.clearButton} 
-          onPress={() => setLocalFilters({})}
-        >
+        <TouchableOpacity style={styles.clearButton} onPress={() => setLocalFilters({province:'79'})}>
           <Text style={styles.clearButtonText}>Xóa bộ lọc</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.applyButton} 
-          onPress={() => onApply(localFilters)}
-        >
+
+        <TouchableOpacity style={styles.applyButton} onPress={() => onApply(localFilters)}>
           <Text style={styles.applyButtonText}>Áp dụng</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
+
+//
+// STYLES ( giữ nguyên toàn bộ )
+//
 const styles = StyleSheet.create({
-  filterButton: {
-    backgroundColor: '#FEE2E2',
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resultsHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  resultsText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500' as const,
-  },
-  listContent: {
-    paddingBottom: 16,
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#9CA3AF',
-  },
   filtersPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "#E5E7EB",
   },
   filterHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "#E5E7EB",
   },
   filterTitle: {
     fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#111827',
+    fontWeight: "700",
   },
-  filterContent: {
-    maxHeight: 300,
-  },
+  filterContent: { maxHeight: 300 },
   filterGroup: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: "#F3F4F6",
   },
   filterLabel: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#374151',
+    fontWeight: "600",
     marginBottom: 12,
   },
   filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: "#F3F4F6",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
   },
   filterChipActive: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
+    backgroundColor: "#EF4444",
+    borderColor: "#EF4444",
   },
   filterChipText: {
     fontSize: 14,
-    color: '#374151',
-    fontWeight: '500' as const,
+    color: "#374151",
+    fontWeight: "500",
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   filterActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     gap: 12,
   },
@@ -228,24 +298,24 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
   },
   clearButtonText: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
   },
   applyButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
+    backgroundColor: "#EF4444",
+    alignItems: "center",
   },
   applyButtonText: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 });

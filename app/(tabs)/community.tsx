@@ -1,6 +1,7 @@
 // app/(tabs)/community.tsx  (hoặc đường dẫn bạn đang dùng)
 import { PostCard } from '@/components/PostCard';
 import { useApp } from '@/hooks/use-app';
+import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import {
   Compass,
@@ -16,7 +17,6 @@ import {
 import React, { useState } from 'react';
 import {
   FlatList,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -27,7 +27,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 type TabType = 'for-you' | 'your-groups' | 'discover' | 'manage';
 
 export default function CommunityScreen() {
@@ -220,6 +219,8 @@ export default function CommunityScreen() {
                       ) ?? 'https://via.placeholder.com/80x80?text=User',
                   }}
                   style={styles.followedGroupAvatar}
+                  contentFit="cover"
+                  placeholderContentFit="cover"
                 /> */}
 
                 <View style={styles.followedGroupInfo}>
