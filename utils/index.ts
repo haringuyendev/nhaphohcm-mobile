@@ -1,6 +1,28 @@
 import { Property, User } from '@/types';
 import qs from 'qs';
 
+export const formatPrice = (price: number): string => {
+  const formatter = new Intl.NumberFormat("vi-VN", {
+    maximumFractionDigits: 2,   // Tối đa 2 chữ số thập phân
+    minimumFractionDigits: 0,   // Không bắt buộc có thập phân
+  });
+
+  if (price >= 1_000_000_000) {
+    const billions = price / 1_000_000_000;
+    // Nếu là số nguyên tỷ → không hiện .0
+    const formatted = billions % 1 === 0 
+      ? formatter.format(billions).replace(/,\d+$/, "") 
+      : formatter.format(billions);
+    return `${formatted} tỷ`;
+  } else {
+    const millions = price / 1_000_000;
+    const formatted = millions % 1 === 0 
+      ? formatter.format(millions).replace(/,\d+$/, "") 
+      : formatter.format(millions);
+    return `${formatted} triệu`;
+  }
+};
+
 const toArray = (value: string | string[] | undefined): string[] => {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string')
@@ -125,7 +147,6 @@ export function buildWhereFromStatus(params: {
   let where: any = {
     seller: { equals: params.userId },
   };
-
   if (params.status) {
     const conditions: any[] = [];
 

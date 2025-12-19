@@ -194,6 +194,14 @@ export const propertiesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Properties", "MyProperties"],
     }),
+    getSimilarProperties: builder.query<Property[], string>({
+      query: (id) => `/api/properties/similar/${id}`,
+      transformResponse: (response: { docs: Property[] }) => response.docs || [],
+      providesTags: (result, error, id) => [
+        { type: "Properties", id },
+        { type: "MyProperties", id },
+      ],
+    }),
   }),
 });
 
@@ -209,4 +217,5 @@ export const {
   useBumpPropertyMutation,
   useUpdateVipStatusMutation,
   useDeletePropertyPermanentlyMutation,
+  useGetSimilarPropertiesQuery
 } = propertiesApi;

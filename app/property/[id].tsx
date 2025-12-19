@@ -1,8 +1,10 @@
+import PropertyCard from '@/components/PropertyCard';
 import { useUser } from '@/hooks/use-user';
 import { useCreateOrGetConversationMutation } from '@/store/api/conversations';
-import { useGetPropertyByIdQuery } from '@/store/api/properties';
+import { useGetPropertyByIdQuery, useGetSimilarPropertiesQuery } from '@/store/api/properties';
 import { Media, Property, User } from '@/types';
 import {
+  formatPrice,
   getFullAddress,
   getImageUrl,
   getSellerAvatar,
@@ -18,6 +20,7 @@ import {
   MessageCircle,
   Phone,
   Share2,
+  BedDouble, Bath, Ruler, DollarSign
 } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import {
@@ -59,7 +62,7 @@ export default function PropertyDetailScreen() {
   const { user: me, favorites, toggleFavorite } = useUser();
   const [createOrGetConversation, { isLoading, error }] =
     useCreateOrGetConversationMutation();
-
+  const { data: similarProperties = [], isLoading: similarPropertiesLoading } = useGetSimilarPropertiesQuery(id as string, { skip: !id });
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       setActiveImageIndex(viewableItems[0].index || 0);
@@ -195,33 +198,82 @@ export default function PropertyDetailScreen() {
             <MapPin size={16} color="#6B7280" />
             <Text style={styles.location}>{getFullAddress(property)}</Text>
           </View>
+
+          <View style={styles.infoRow}>
+            <Calendar size={16} color="#6B7280" />
+            <Text style={styles.infoText}>
+              Đăng {timeAgo(property.createdAt)}
+            </Text>
+          </View>
         </View>
 
         {/* ------------------ SELLER ------------------ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
 
-          <View style={styles.sellerRow}>
-            <Image
-              source={{
-                uri:
-                  getSellerAvatar(property.seller) ||
-                  'https://via.placeholder.com/80',
-              }}
-              style={styles.sellerAvatar}
-              placeholder={
-                (property?.images?.[0]?.image as Media)?.blurhash ||
-                'LEHV6nWB2yk8pyo0adR*.7kCMdnj'
-              }
-              placeholderContentFit="cover"
-              contentFit="cover"
-            />
-            <Text style={styles.sellerName}>
-              {getSellerName(property.seller)}
-            </Text>
+          <View style={styles.sellerRowInfo}>
+            <View style={styles.sellerRow}>
+              <Image
+                source={{
+                  uri:
+                    getSellerAvatar(property.seller) ||
+                    'https://via.placeholder.com/80',
+                }}
+                style={styles.sellerAvatar}
+                placeholder={
+                  (property?.images?.[0]?.image as Media)?.blurhash ||
+                  'LEHV6nWB2yk8pyo0adR*.7kCMdnj'
+                }
+                placeholderContentFit="cover"
+                contentFit="cover"
+              />
+              <Text style={styles.sellerName}>
+                {getSellerName(property.seller)}
+              </Text>
+            </View>
+
           </View>
         </View>
+        {/* ------------------ EXTRA INFO ------------------ */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Thông tin thêm</Text>
 
+          <View style={styles.extraInfoGrid}>
+            {property.bedrooms != null && (
+              <View style={styles.extraItem}>
+                <BedDouble size={18} color="#EF4444" />
+                <Text style={styles.extraLabel}>Phòng ngủ</Text>
+                <Text style={styles.extraValue}>{property.bedrooms}</Text>
+              </View>
+            )}
+
+            {property.bathrooms != null && (
+              <View style={styles.extraItem}>
+                <Bath size={18} color="#EF4444" />
+                <Text style={styles.extraLabel}>Phòng tắm</Text>
+                <Text style={styles.extraValue}>{property.bathrooms}</Text>
+              </View>
+            )}
+
+            {property.area != null && (
+              <View style={styles.extraItem}>
+                <Ruler size={18} color="#EF4444" />
+                <Text style={styles.extraLabel}>Diện tích</Text>
+                <Text style={styles.extraValue}>{property.area} m²</Text>
+              </View>
+            )}
+
+            {property.price != null && (
+              <View style={styles.extraItem}>
+                <DollarSign size={18} color="#EF4444" />
+                <Text style={styles.extraLabel}>Giá</Text>
+                <Text style={styles.extraValue}>
+                  {formatPrice(property.price)} ₫
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
         {/* ------------------ DESCRIPTION ------------------ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mô tả</Text>
@@ -232,17 +284,47 @@ export default function PropertyDetailScreen() {
           </Text>
         </View>
 
-        {/* ------------------ EXTRA INFO ------------------ */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thông tin thêm</Text>
 
-          <View style={styles.infoRow}>
-            <Calendar size={16} color="#6B7280" />
-            <Text style={styles.infoText}>
-              Đăng {timeAgo(property.createdAt)}
-            </Text>
-          </View>
-        </View>
+        {similarProperties && (
+          <>
+            {/* ------------------ TIN ĐĂNG TƯƠNG TỰ ------------------ */}
+            {similarPropertiesLoading ? <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.similarContainer}
+            >
+              {[...Array(4)].map((_, i) => (
+                <View key={i} style={styles.similarCard}>
+                  <View style={styles.skeletonCard} />
+                </View>
+              ))}
+            </ScrollView> :
+              <View style={styles.sectionNoPadding}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Tin đăng tương tự</Text>
+                  <TouchableOpacity>
+                    <Text>Xem tất cả</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.similarContainer}
+                >
+                  {similarProperties.map((property) => (
+                    <View key={property.id} style={styles.similarCard}>
+                      <PropertyCard
+                        property={property}
+                        isFavorite={favorites.includes(property.id)}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            }
+          </>
+        )}
       </ScrollView>
 
       {/* ------------------ FOOTER ------------------ */}
@@ -310,9 +392,12 @@ const styles = StyleSheet.create({
   location: { marginLeft: 6, fontSize: 14, color: '#6B7280' },
 
   section: { padding: 16, borderBottomWidth: 8, borderBottomColor: '#F3F4F6' },
+  sectionNoPadding: { padding: 0, paddingTop: 16, borderBottomWidth: 8, borderBottomColor: '#F3F4F6' },
+
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
 
   sellerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sellerRowInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   sellerAvatar: {
     width: 50,
     height: 50,
@@ -323,7 +408,7 @@ const styles = StyleSheet.create({
 
   description: { fontSize: 15, lineHeight: 22, color: '#333' },
 
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
   infoText: { marginLeft: 8, fontSize: 14, color: '#777' },
 
   footer: {
@@ -357,4 +442,49 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   messageButtonText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
+  similarContainer: {
+    paddingHorizontal: 0
+  },
+  similarCard: {
+    marginLeft: 0
+  },
+  skeletonCard: {
+    width: 280,
+    height: 320,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  extraInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+
+  extraItem: {
+    width: '48%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  extraLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+
+  extraValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111',
+  },
 });
