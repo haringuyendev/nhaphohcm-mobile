@@ -32,8 +32,11 @@ export const propertiesApi = baseApi.injectEndpoints({
 
     // GET BY ID
     getCommunityById: builder.query<any, string>({
-      query: (id: string) => `/api/c/${id}`,
-      providesTags: (_result, _error, id) => [{ type: 'Properties', id }],
+      query: (id: string) => ({
+        url: `/api/communities/${id}`,
+        method: 'GET',
+      }),
+      providesTags: (_result, _error, id) => [{ type: 'Communities', id }],
     }),
 
     // CREATE

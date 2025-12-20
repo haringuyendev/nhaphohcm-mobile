@@ -1,21 +1,60 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Users, UserPlus, UserMinus } from 'lucide-react-native';
-import { useApp } from '@/hooks/use-app';
 import { PostCard } from '@/components/PostCard';
+import { useApp } from '@/hooks/use-app';
+import { useGetCommunityByIdQuery } from '@/store/api/community';
+import { useGetPostsQuery } from '@/store/api/socialPosts';
+import { SocialPost } from '@/store/payload-types';
+import { getImageUrl } from '@/utils';
+import { renderLexicalNode } from '@/utils/lexical';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { UserMinus, UserPlus, Users } from 'lucide-react-native';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CommunityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+
   const router = useRouter();
-  const { getCommunityById, getPostsByCommunity, joinCommunity, leaveCommunity } = useApp();
+  const { getPostsByCommunity, joinCommunity, leaveCommunity } = useApp();
   const [refreshing, setRefreshing] = useState(false);
 
-  const community = getCommunityById(id);
-  const posts = getPostsByCommunity(id);
+  const {
+    data: community,
+    isLoading,
+    error,
+    refetch,
+  } = useGetCommunityByIdQuery(id, {
+    skip: !id,
+  });
 
-  if (!community) {
+  const { data: postsData } = useGetPostsQuery({ community: id });
+
+  const posts: SocialPost[] = postsData?.docs || [];
+
+  console.log('Community Detail:', posts);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.errorContainer}>
+          <ActivityIndicator size="large" color="#EF4444" />
+          <Text style={styles.errorText}>Đang tải...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !community) {
     return (
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <Stack.Screen options={{ headerShown: false }} />
@@ -65,17 +104,23 @@ export default function CommunityDetailScreen() {
       <Stack.Screen
         options={{
           headerTitle: community.name,
+          headerShown: true,
           headerTransparent: false,
         }}
       />
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <PostCard post={item} />}
+        renderItem={({ item }) => (
+          <PostCard post={item} community={community} />
+        )}
         ListHeaderComponent={() => (
           <View>
             <View style={styles.coverContainer}>
-              <Image source={{ uri: community.coverImage }} style={styles.coverImage} />
+              <Image
+                source={{ uri: getImageUrl(community.cover) }}
+                style={styles.coverImage}
+              />
               <View style={styles.coverOverlay} />
             </View>
 
@@ -91,13 +136,18 @@ export default function CommunityDetailScreen() {
                 </View>
               </View>
 
-              <Text style={styles.description}>{community.description}</Text>
+              <Text style={styles.description}>
+                {community.description?.root
+                  ? renderLexicalNode(community.description.root)
+                  : community.description || 'Không có mô tả'}
+              </Text>
 
               <View style={styles.statsRow}>
                 <View style={styles.stat}>
                   <Users size={18} color="#6B7280" />
                   <Text style={styles.statText}>
-                    {community.memberCount.toLocaleString('vi-VN')} thành viên
+                    {(community.memberCount ?? 0).toLocaleString('vi-VN')} thành
+                    viên
                   </Text>
                 </View>
                 <View style={styles.categoryBadge}>
@@ -132,7 +182,7 @@ export default function CommunityDetailScreen() {
             <View style={styles.postsHeader}>
               <Text style={styles.postsTitle}>Bài viết</Text>
               <Text style={styles.postsCount}>
-                {posts.length} bài viết
+                {posts?.length ?? 0} bài viết
               </Text>
             </View>
           </View>

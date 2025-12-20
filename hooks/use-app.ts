@@ -1,30 +1,29 @@
 // src/hooks/useApp.ts
-import { useDispatch, useSelector } from "react-redux";
-import { useMemo, useCallback, useEffect } from "react";
-import { RootState, AppDispatch } from "@/store";
+import { AppDispatch, RootState } from '@/store';
 import {
+  addPost,
   addProperty,
-  updateProperty,
   deleteProperty,
-  pushProperty,
-  upgradeToVIP,
-  toggleFavorite,
+  incrementShareCount,
   joinCommunity,
   leaveCommunity,
-  addPost,
+  pushProperty,
+  toggleFavorite,
   togglePostLike,
-  incrementShareCount,
-  loadAppData,
-} from "@/store/slices/app";
-import { Property, SearchFilters } from "@/types/property";
-import { Post } from "@/types/community";
+  updateProperty,
+  upgradeToVIP,
+} from '@/store/slices/app';
+import { Post } from '@/types/community';
+import { Property, SearchFilters } from '@/types/property';
+import { useCallback, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 export const useApp = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { properties, favorites, communities, posts, isLoading } = useSelector(
     (state: RootState) => state.app
   );
-  
+
   // ========== PROPERTY SELECTORS ==========
   const getPropertyById = useCallback(
     (id: string) => properties.find((p) => p.id === id),
@@ -33,7 +32,7 @@ export const useApp = () => {
 
   const getVIPProperties = useMemo(() => {
     return properties
-      .filter((p) => p.isVIP && p.status === "active")
+      .filter((p) => p.isVIP && p.status === 'active')
       .sort(
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
@@ -42,7 +41,7 @@ export const useApp = () => {
 
   const getActiveProperties = useMemo(() => {
     return properties
-      .filter((p) => p.status === "active")
+      .filter((p) => p.status === 'active')
       .sort(
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
@@ -62,7 +61,7 @@ export const useApp = () => {
     (filters: SearchFilters) => {
       return properties
         .filter((p) => {
-          if (p.status !== "active") return false;
+          if (p.status !== 'active') return false;
 
           if (
             filters.transactionType &&
@@ -78,7 +77,7 @@ export const useApp = () => {
           if (filters.ward && p.location.ward !== filters.ward) return false;
 
           const priceInMillion =
-            p.priceUnit === "billion" ? p.price * 1000 : p.price;
+            p.priceUnit === 'billion' ? p.price * 1000 : p.price;
           if (
             filters.priceMin !== undefined &&
             priceInMillion < filters.priceMin
@@ -174,7 +173,7 @@ export const useApp = () => {
   // ========== ACTIONS (dispatch) ==========
   const actions = {
     addProperty: (
-      data: Omit<Property, "id" | "createdAt" | "updatedAt" | "viewCount">
+      data: Omit<Property, 'id' | 'createdAt' | 'updatedAt' | 'viewCount'>
     ) => dispatch(addProperty(data)),
     updateProperty: (id: string, updates: Partial<Property>) =>
       dispatch(updateProperty({ id, updates })),
@@ -190,13 +189,13 @@ export const useApp = () => {
     addPost: (
       post: Omit<
         Post,
-        | "id"
-        | "createdAt"
-        | "updatedAt"
-        | "likeCount"
-        | "commentCount"
-        | "shareCount"
-        | "isLiked"
+        | 'id'
+        | 'createdAt'
+        | 'updatedAt'
+        | 'likeCount'
+        | 'commentCount'
+        | 'shareCount'
+        | 'isLiked'
       >
     ) => dispatch(addPost(post)),
     togglePostLike: (postId: string) => dispatch(togglePostLike(postId)),

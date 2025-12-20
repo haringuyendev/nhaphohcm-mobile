@@ -1,12 +1,26 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { User, Heart, FileText, Settings, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLogoutMutation } from '@/store/api/auth';
-import * as SecureStore from "expo-secure-store";
+import { Stack, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import {
+  ChevronRight,
+  FileText,
+  Heart,
+  HelpCircle,
+  LogOut,
+  Settings,
+  User,
+} from 'lucide-react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
-  const router=useRouter()
+  const router = useRouter();
   const menuItems = [
     {
       icon: User,
@@ -38,14 +52,16 @@ export default function ProfileScreen() {
   const [logOut, { isLoading }] = useLogoutMutation();
 
   const handleLogout = async () => {
+    console.log('Logging out...');
+
     try {
       await logOut();
-      await SecureStore.deleteItemAsync("token");
+      await SecureStore.deleteItemAsync('token');
       router.replace('/login');
     } catch (error) {
       console.error('Logout failed:', error);
     }
-  }
+  };
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen
@@ -121,7 +137,9 @@ export default function ProfileScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>BinhThanhLand v1.0.0</Text>
-          <Text style={styles.footerSubtext}>© 2024 BinhThanhLand. All rights reserved.</Text>
+          <Text style={styles.footerSubtext}>
+            © 2024 BinhThanhLand. All rights reserved.
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Share as RNShare } from 'react-native';
-import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { useApp } from '@/hooks/use-app';
-import { Community, Post } from '@/types/community';
+import { Community, SocialPost } from '@/store/payload-types';
+import { getImageUrl } from '@/utils';
+import { renderLexicalNode } from '@/utils/lexical';
+import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
+import React, { useState } from 'react';
+import {
+  Alert,
+  Image,
+  Share as RNShare,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 interface PostCardProps {
-  post: Post;
-  community?: Community
+  post: SocialPost;
+  community?: Community;
 }
 
 export function PostCard({ post, community }: PostCardProps) {
@@ -54,62 +65,92 @@ export function PostCard({ post, community }: PostCardProps) {
     return date.toLocaleDateString('vi-VN');
   };
 
+  const mainAvatarUri = getImageUrl(community?.cover ?? post?.author?.avatar);
+  const userAvatarUri = getImageUrl(post?.author?.avatar);
+
   return (
     <View style={styles.card}>
       <View style={styles.groupHeader}>
         <View style={{ position: 'relative' }}>
-
           {/* Avatar chính: nếu có cộng đồng thì dùng ảnh cộng đồng, nếu không dùng avatar user */}
-          <Image
-            source={{ uri: community?.coverImage ?? post?.userAvatar }}
-            style={styles.groupAvatar}
-          />
+          {mainAvatarUri ? (
+            <Image source={{ uri: mainAvatarUri }} style={styles.groupAvatar} />
+          ) : (
+            <View style={[styles.groupAvatar, styles.placeholderAvatar]} />
+          )}
 
           {/* Avatar user chồng lên — chỉ hiển thị nếu có community */}
-          {community && (
+          {community && userAvatarUri ? (
             <Image
-              source={{ uri: post?.userAvatar }}
+              source={{ uri: userAvatarUri }}
               style={styles.overlayUserAvatar}
             />
-          )}
+          ) : community ? (
+            <View
+              style={[styles.overlayUserAvatar, styles.placeholderAvatar]}
+            />
+          ) : null}
         </View>
 
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={styles.groupName}>
-            {community?.name ?? post?.userName}
+            {community?.name ?? post?.author?.name}
           </Text>
 
           {/* Nếu có group → hiển thị người đăng + thời gian  
         Nếu không có group → chỉ hiển thị thời gian */}
           <Text style={styles.postAuthor}>
-            {community ? `${post?.userName} · ${getTimeAgo(post.createdAt)}`
+            {community
+              ? `${post?.author?.name} · ${getTimeAgo(post.createdAt)}`
               : getTimeAgo(post.createdAt)}
           </Text>
         </View>
       </View>
 
       {/* Nội dung bài viết */}
-      <Text style={styles.content}>{post.content}</Text>
+      <Text style={styles.content}>
+        {post.content?.root
+          ? renderLexicalNode(post.content.root)
+          : post.content || ''}
+      </Text>
 
       {/* Hình ảnh */}
-      {post.images && post.images.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+      {post.attachments && post.attachments.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           style={styles.imagesContainer}
-          contentContainerStyle={styles.imagesContent}>
-          {post.images.map((uri, index) => (
-            <Image
-              key={index}
-              source={{ uri }}
-              style={[styles.postImage, post.images!.length === 1 && styles.singleImage]}
-            />
-          ))}
+          contentContainerStyle={styles.imagesContent}
+        >
+          {post.attachments.map((attachment, index) => {
+            const imageUri =
+              typeof attachment === 'string'
+                ? attachment
+                : typeof attachment?.file === 'string'
+                ? attachment.file
+                : attachment?.file?.url || '';
+
+            if (!imageUri) return null;
+
+            return (
+              <Image
+                key={index}
+                source={{ uri: imageUri }}
+                style={[
+                  styles.postImage,
+                  post.attachments!.length === 1 && styles.singleImage,
+                ]}
+              />
+            );
+          })}
         </ScrollView>
       )}
 
       {/* Stats */}
       <View style={styles.stats}>
         <Text style={styles.statText}>
-          {post.likeCount > 0 && `${post.likeCount.toLocaleString('vi-VN')} lượt thích`}
+          {post.likeCount > 0 &&
+            `${post.likeCount.toLocaleString('vi-VN')} lượt thích`}
         </Text>
 
         <View style={styles.rightStats}>
@@ -125,8 +166,14 @@ export function PostCard({ post, community }: PostCardProps) {
       {/* Actions */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-          <Heart size={22} color={post.isLiked ? '#EF4444' : '#6B7280'} fill={post.isLiked ? '#EF4444' : 'transparent'} />
-          <Text style={[styles.actionText, post.isLiked && styles.likedText]}>Thích</Text>
+          <Heart
+            size={22}
+            color={post.isLiked ? '#EF4444' : '#6B7280'}
+            fill={post.isLiked ? '#EF4444' : 'transparent'}
+          />
+          <Text style={[styles.actionText, post.isLiked && styles.likedText]}>
+            Thích
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={handleComment}>
@@ -219,11 +266,14 @@ const styles = StyleSheet.create({
   overlayUserAvatar: {
     width: 26,
     height: 26,
-    borderRadius: 13,        // Tròn 100%
-    borderWidth: 2,          // Viền trắng cho đẹp như Facebook
+    borderRadius: 13, // Tròn 100%
+    borderWidth: 2, // Viền trắng cho đẹp như Facebook
     borderColor: '#FFFFFF',
     position: 'absolute',
-    bottom: -2,              // Nhô ra 1 chút cho giống FB
+    bottom: -2, // Nhô ra 1 chút cho giống FB
     right: -2,
+  },
+  placeholderAvatar: {
+    backgroundColor: '#E5E7EB',
   },
 });

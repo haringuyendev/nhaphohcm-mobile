@@ -1,6 +1,10 @@
 // app/(tabs)/community.tsx  (hoặc đường dẫn bạn đang dùng)
 import { PostCard } from '@/components/PostCard';
 import { useApp } from '@/hooks/use-app';
+import { useGetCommunitiesQuery } from '@/store/api/community';
+import { useGetPostsQuery } from '@/store/api/socialPosts';
+import { Community } from '@/store/payload-types';
+import { getImageUrl } from '@/utils';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import {
@@ -34,11 +38,19 @@ export default function CommunityScreen() {
   const {
     getRecommendCommunities,
     joinCommunity,
-    getJoinedCommunities,
     getOwnedCommunities,
     leaveCommunity,
-    getPostWithCommunity,
   } = useApp();
+
+  const {
+    data: getJoinedCommunitiesData,
+    isLoading,
+    refetch,
+  } = useGetCommunitiesQuery({});
+  const getJoinedCommunities = getJoinedCommunitiesData?.docs ?? [];
+
+  const { data: postsData } = useGetPostsQuery({});
+  const posts = postsData?.docs || [];
 
   const [activeTab, setActiveTab] = useState<TabType>('for-you');
   const [searchVisible, setSearchVisible] = useState(false);
@@ -48,6 +60,7 @@ export default function CommunityScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    await refetch();
     setRefreshing(false);
   };
 
@@ -188,7 +201,7 @@ export default function CommunityScreen() {
 
     return (
       <FlatList
-        data={getPostWithCommunity}
+        data={posts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <PostCard post={item} community={item.community} />
@@ -205,28 +218,22 @@ export default function CommunityScreen() {
             <Text style={styles.sectionTitle}>Nhóm bạn tham gia</Text>
 
             {/* Hiển thị 5 nhóm */}
-            {topGroups.map((group) => (
+            {topGroups.map((group: Community) => (
               <TouchableOpacity
                 key={group.id}
                 style={styles.followedGroupRow}
                 onPress={() => router.push(`/community/${group.id}`)}
               >
-                {/* <Image
-                  source={{
-                    uri:
-                      resolveImageUrl(
-                        ((group.cover?.avatar as Media)?.url
-                      ) ?? 'https://via.placeholder.com/80x80?text=User',
-                  }}
+                <Image
+                  source={{ uri: getImageUrl(group.cover) }}
                   style={styles.followedGroupAvatar}
-                  contentFit="cover"
-                  placeholderContentFit="cover"
-                /> */}
+                />
 
                 <View style={styles.followedGroupInfo}>
                   <Text style={styles.followedGroupName}>{group.name}</Text>
                   <Text style={styles.followedGroupMembers}>
-                    {group.memberCount.toLocaleString('vi-VN')} thành viên
+                    {(group?.memberCount ?? 0).toLocaleString('vi-VN')} thành
+                    viên
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -252,7 +259,10 @@ export default function CommunityScreen() {
           onPress={() => router.push(`/community/${item.id}`)}
         >
           {/* Ảnh bên trái */}
-          <Image source={{ uri: item.coverImage }} style={styles.groupAvatar} />
+          <Image
+            source={{ uri: getImageUrl(item.cover) }}
+            style={styles.groupAvatar}
+          />
 
           {/* Text bên phải */}
           <View style={styles.groupInfo}>
