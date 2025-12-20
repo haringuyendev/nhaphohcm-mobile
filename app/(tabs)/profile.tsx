@@ -1,12 +1,18 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { User, Heart, FileText, Settings, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useUser } from '@/hooks/use-user';
 import { useLogoutMutation } from '@/store/api/auth';
+import { useGetMyPropertiesByStatusQuery } from '@/store/api/properties';
+import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from "expo-secure-store";
+import { ChevronRight, FileText, Heart, HelpCircle, LogOut, Settings, User } from 'lucide-react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+
+
 
 export default function ProfileScreen() {
   const router=useRouter()
+  const { user, favorites, loading } = useUser();
   const menuItems = [
     {
       icon: User,
@@ -16,8 +22,8 @@ export default function ProfileScreen() {
     {
       icon: Heart,
       label: 'Tin đã lưu',
-      count: 5,
-      onPress: () => console.log('Favorites'),
+      count: loading ? 0 : favorites.length,
+      onPress: () => router.push('/wishlist'),
     },
     {
       icon: FileText,
@@ -46,6 +52,18 @@ export default function ProfileScreen() {
       console.error('Logout failed:', error);
     }
   }
+
+  const { data: activePostsData } = useGetMyPropertiesByStatusQuery(
+    {
+      userId: user?.id || '',
+      status: 'published',
+      limit: 1,   // important: only need count
+      page: 1,
+    },
+    { skip: !user?.id }
+  );
+  const activePostCount = activePostsData?.totalDocs ?? 0; // Lấy số lượng tin đăng đang hoạt động của người dùng
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen
@@ -60,13 +78,18 @@ export default function ProfileScreen() {
           <View style={styles.avatar}>
             <User size={40} color="#EF4444" />
           </View>
-          <Text style={styles.name}>Nguyễn Văn A</Text>
-          <Text style={styles.phone}>0901234567</Text>
+          <Text style={styles.name}>
+            {user?.name || 'Chưa cập nhật tên'}
+          </Text>
+
+          <Text style={styles.phone}>
+            {user?.phone || 'Chưa cập nhật số điện thoại'}
+          </Text>
         </View>
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>3</Text>
+            <Text style={styles.statValue}>{activePostCount}</Text>
             <Text style={styles.statLabel}>Đang đăng</Text>
           </View>
           <View style={styles.statDivider} />

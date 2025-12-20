@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
 import { useMeQuery } from "@/store/api/auth";
-import { User } from "@/types";
 import { useToggleFavoriteMutation } from "@/store/api/user";
+import { User } from "@/types";
+import { useEffect, useMemo, useState } from "react";
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
@@ -12,7 +12,8 @@ export function useUser() {
     return data?.user?.favoriteProperties ?? [];
   },[data])
   const favoritePropertiesId=useMemo(()=>{
-    return data?.user?.favoriteProperties.map((p:any)=>p.id) ?? [];
+    return data?.user?.favoriteProperties?.map((p:any)=>p.id) ?? [];
+    //return data?.user?.favoriteProperties.map((p:any)=>p.id) ?? []; (Code cũ)
   },[data])
 
   useEffect(() => {
