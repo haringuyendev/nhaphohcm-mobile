@@ -1,20 +1,39 @@
-import { useEffect, useState, useMemo } from "react";
 import { useMeQuery } from "@/store/api/auth";
+import { useGetWishlistPropertiesQuery } from "@/store/api/properties";
+import { useToggleFavoriteMutation, useGetMyPropertyStatsQuery } from "@/store/api/user";
 import { User } from "@/types";
-import { useToggleFavoriteMutation } from "@/store/api/user";
+import { useEffect, useMemo, useState } from "react";
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const { data, refetch, isLoading } = useMeQuery();
   const [toggleFavoriteAPI] = useToggleFavoriteMutation();
-  
-  const favoriteProperties=useMemo(()=>{
-    return data?.user?.favoriteProperties ?? [];
-  },[data])
+  const {data:statsData}=useGetMyPropertyStatsQuery()
   const favoritePropertiesId=useMemo(()=>{
-    return data?.user?.favoriteProperties.map((p:any)=>p.id) ?? [];
+    return data?.user?.favoriteProperties.map((p:any)=>p.id) ?? []; 
   },[data])
 
+  const stats = useMemo(() => {
+    if (!statsData) {
+      return {
+        total: 0,
+        published: 0,
+        expired: 0,
+        vip: 0,
+        hidden:0
+      };
+    }
+
+    return {
+      total: statsData.total?.totalDocs ?? 0,
+      published: statsData.published?.totalDocs ?? 0,
+      expired: statsData.expired?.totalDocs ?? 0,
+      vip: statsData.vip?.totalDocs ?? 0,
+      hidden:statsData.hidden?.totalDocs ?? 0
+    };
+  }, [statsData]);
+
+  const {data:propertyData}=useGetWishlistPropertiesQuery(favoritePropertiesId);
   useEffect(() => {
     if (data?.user) {
       setUser(data.user);
@@ -24,10 +43,11 @@ export function useUser() {
   return {
     user,
     favorites: favoritePropertiesId,
-    favoriteProperties,
+    favoriteProperties:propertyData?.docs ?? [],
     toggleFavorite:toggleFavoriteAPI,
     setUser,       // Nếu muốn set trực tiếp
     reloadUser: refetch,
     loading: isLoading,
+    stats,
   };
 }

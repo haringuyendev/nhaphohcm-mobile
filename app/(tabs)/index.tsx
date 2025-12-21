@@ -22,8 +22,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
-  // const { favorites, toggleFavorite } = useUser(); // ⭐ Lấy danh sách ID yêu thích
-
   const {
     properties,
     vip_properties,
@@ -63,12 +61,7 @@ export default function HomeScreen() {
         <FlatList
           data={normalProperties}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <PropertyCard
-              property={item}
-              isFavorite={false} // ⭐ Check yêu thích
-            />
-          )}
+          renderItem={({ item }) => <PropertyCard property={item} />}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.3}
           refreshing={propertiesLoading}
@@ -115,7 +108,7 @@ export default function HomeScreen() {
                   >
                     {vip_properties.slice(0, 5).map((property) => (
                       <View key={property.id} style={styles.vipCard}>
-                        <PropertyCard property={property} isFavorite={false} />
+                        <PropertyCard property={property} />
                       </View>
                     ))}
                   </ScrollView>

@@ -18,15 +18,15 @@ import { useUser } from '@/hooks/use-user';
 
 type TabType = 'active' | 'hidden' | 'expired';
 
-const statusMap: Record<TabType, 'published' | 'deleted' | 'expired'> = {
+const statusMap: Record<TabType, 'published' | 'unpublished' | 'expired'> = {
   active: 'published',
-  hidden: 'deleted',
+  hidden: 'unpublished',
   expired: 'expired',
 };
 
 export default function MyPostsScreen() {
   const router = useRouter();
-  const { user, favorites } = useUser();
+  const { user, stats } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('active');
 
   const currentStatus = statusMap[activeTab];
@@ -152,7 +152,7 @@ export default function MyPostsScreen() {
           <Text style={[styles.actionText, { color: '#3B82F6' }]}>Sửa</Text>
         </TouchableOpacity>
 
-        {property.is_hidden ? (
+        {!property.is_published ? (
           <TouchableOpacity style={styles.actionButton} onPress={() => handleShow(property.id)}>
             <EyeOff size={18} color="#10B981" />
             <Text style={[styles.actionText, { color: '#10B981' }]}>Hiện</Text>
@@ -203,7 +203,7 @@ export default function MyPostsScreen() {
           onPress={() => setActiveTab('active')}
         >
           <Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>
-            Đang hiển thị {activeTab === 'active' ? `(${totalCount})` : ''}
+            Đang hiển thị {stats.published}
           </Text>
         </TouchableOpacity>
 
@@ -212,7 +212,7 @@ export default function MyPostsScreen() {
           onPress={() => setActiveTab('hidden')}
         >
           <Text style={[styles.tabText, activeTab === 'hidden' && styles.tabTextActive]}>
-            Đã ẩn {activeTab === 'hidden' ? `(${totalCount})` : ''}
+            Đã ẩn {stats.hidden}
           </Text>
         </TouchableOpacity>
 
@@ -221,7 +221,7 @@ export default function MyPostsScreen() {
           onPress={() => setActiveTab('expired')}
         >
           <Text style={[styles.tabText, activeTab === 'expired' && styles.tabTextActive]}>
-            Hết hạn {activeTab === 'expired' ? `(${totalCount})` : ''}
+            Hết hạn {stats.expired}
           </Text>
         </TouchableOpacity>
       </View>
@@ -237,7 +237,7 @@ export default function MyPostsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View>
-              <PropertyCard property={item} isFavorite={favorites.includes(item.id)} />
+              <PropertyCard property={item} />
               {renderActions(item)}
             </View>
           )}

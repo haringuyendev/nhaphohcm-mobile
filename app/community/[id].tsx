@@ -44,7 +44,10 @@ export default function CommunityDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <SafeAreaView
+        style={styles.container}
+        edges={['left', 'right', 'top', 'bottom']}
+      >
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.errorContainer}>
           <ActivityIndicator size="large" color="#EF4444" />
@@ -56,7 +59,10 @@ export default function CommunityDetailScreen() {
 
   if (error || !community) {
     return (
-      <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <SafeAreaView
+        style={styles.container}
+        edges={['left', 'right', 'top', 'bottom']}
+      >
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Không tìm thấy cộng đồng</Text>
@@ -100,7 +106,7 @@ export default function CommunityDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <Stack.Screen
         options={{
           headerTitle: community.name,

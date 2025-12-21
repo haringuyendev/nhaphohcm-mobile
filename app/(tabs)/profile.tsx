@@ -1,4 +1,8 @@
+import { useUser } from '@/hooks/use-user';
 import { useLogoutMutation } from '@/store/api/auth';
+import { Media } from '@/types';
+import { resolveImageUrl } from '@/utils';
+import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import {
@@ -18,9 +22,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user, favorites, loading, stats } = useUser();
+  console.log(stats);
   const menuItems = [
     {
       icon: User,
@@ -30,8 +35,8 @@ export default function ProfileScreen() {
     {
       icon: Heart,
       label: 'Tin đã lưu',
-      count: 5,
-      onPress: () => console.log('Favorites'),
+      count: loading ? 0 : favorites.length,
+      onPress: () => router.push('/wishlist'),
     },
     {
       icon: FileText,
@@ -49,7 +54,7 @@ export default function ProfileScreen() {
       onPress: () => console.log('Help'),
     },
   ];
-  const [logOut, { isLoading }] = useLogoutMutation();
+  const [logOut] = useLogoutMutation();
 
   const handleLogout = async () => {
     console.log('Logging out...');
@@ -74,26 +79,45 @@ export default function ProfileScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <User size={40} color="#EF4444" />
+            <Image
+              source={{
+                uri: resolveImageUrl(
+                  (user?.avatar as Media)?.url ??
+                    'https://via.placeholder.com/80x80?text=User'
+                ) as string,
+              }}
+              style={styles.avatar}
+              placeholder={
+                (user?.avatar as Media)?.blurhash ||
+                'LEHV6nWB2yk8pyo0adR*.7kCMdnj'
+              }
+              contentFit="cover"
+            />
           </View>
-          <Text style={styles.name}>Nguyễn Văn A</Text>
-          <Text style={styles.phone}>0901234567</Text>
+          <Text style={styles.name}>{user?.name || 'Chưa cập nhật tên'}</Text>
+
+          <Text style={styles.phone}>
+            {user?.phone || 'Chưa cập nhật số điện thoại'}
+          </Text>
+          <Text style={styles.phone}>
+            {user?.email || 'Chưa cập nhật email'}
+          </Text>
         </View>
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>3</Text>
-            <Text style={styles.statLabel}>Đang đăng</Text>
+            <Text style={styles.statValue}>{stats.published}</Text>
+            <Text style={styles.statLabel}>Đang hiển thị</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>1</Text>
+            <Text style={styles.statValue}>{stats.vip}</Text>
             <Text style={styles.statLabel}>VIP</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>1.2K</Text>
-            <Text style={styles.statLabel}>Lượt xem</Text>
+            <Text style={styles.statValue}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Đã đăng</Text>
           </View>
         </View>
 
