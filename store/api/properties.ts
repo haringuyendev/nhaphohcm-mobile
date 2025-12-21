@@ -29,6 +29,24 @@ export const propertiesApi = baseApi.injectEndpoints({
       },
       providesTags: ["Properties"],
     }),
+    getWishlistProperties: builder.query<any, string[]>({
+      query: (ids) => {
+        console.log(ids);
+        const where = {
+          id: {
+            in: ids,
+          },
+        };
+        return generatePayloadQuery({
+          path: "/api/properties",
+          where,
+          limit:ids.length,
+          page:1,
+          sort:"-is_vip,-bumped_at,-created_at",
+        });
+      },
+      providesTags: ["Properties"],
+    }),
 
     getMyPropertiesByStatus: builder.query<
       any,
@@ -196,7 +214,8 @@ export const propertiesApi = baseApi.injectEndpoints({
     }),
     getSimilarProperties: builder.query<Property[], string>({
       query: (id) => `/api/properties/similar/${id}`,
-      transformResponse: (response: { docs: Property[] }) => response.docs || [],
+      transformResponse: (response: { docs: Property[] }) =>
+        response.docs || [],
       providesTags: (result, error, id) => [
         { type: "Properties", id },
         { type: "MyProperties", id },
@@ -217,5 +236,6 @@ export const {
   useBumpPropertyMutation,
   useUpdateVipStatusMutation,
   useDeletePropertyPermanentlyMutation,
-  useGetSimilarPropertiesQuery
+  useGetSimilarPropertiesQuery,
+  useGetWishlistPropertiesQuery
 } = propertiesApi;

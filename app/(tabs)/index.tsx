@@ -6,7 +6,6 @@ import { SkeletonCard } from '@/components/Skeleton/PropertySkeleton';
 import { mockBanners } from '@/mocks/data';
 
 import { useProperties } from '@/hooks/use-properties';
-import { useUser } from '@/hooks/use-user';
 import { PropertyType } from '@/types';
 
 import { Stack, useRouter } from 'expo-router';
@@ -23,8 +22,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { favorites, toggleFavorite } = useUser(); // ⭐ Lấy danh sách ID yêu thích
-
   const {
     properties,
     vip_properties,
@@ -67,7 +64,6 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <PropertyCard
               property={item}
-              isFavorite={favorites.includes(item.id)} // ⭐ Check yêu thích
             />
           )}
           onEndReached={handleLoadMore}
@@ -118,7 +114,6 @@ export default function HomeScreen() {
                       <View key={property.id} style={styles.vipCard}>
                         <PropertyCard
                           property={property}
-                          isFavorite={favorites.includes(property.id)}
                         />
                       </View>
                     ))}

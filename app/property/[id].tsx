@@ -60,7 +60,7 @@ export default function PropertyDetailScreen() {
   const { data } = useGetPropertyByIdQuery(id as string, { skip: !id });
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const { user: me, favorites, toggleFavorite } = useUser();
-  const [createOrGetConversation, { isLoading, error }] =
+  const [createOrGetConversation] =
     useCreateOrGetConversationMutation();
   const { data: similarProperties = [], isLoading: similarPropertiesLoading } = useGetSimilarPropertiesQuery(id as string, { skip: !id });
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -316,7 +316,6 @@ export default function PropertyDetailScreen() {
                     <View key={property.id} style={styles.similarCard}>
                       <PropertyCard
                         property={property}
-                        isFavorite={favorites.includes(property.id)}
                       />
                     </View>
                   ))}

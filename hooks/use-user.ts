@@ -1,4 +1,5 @@
 import { useMeQuery } from "@/store/api/auth";
+import { useGetWishlistPropertiesQuery } from "@/store/api/properties";
 import { useToggleFavoriteMutation } from "@/store/api/user";
 import { User } from "@/types";
 import { useEffect, useMemo, useState } from "react";
@@ -7,15 +8,10 @@ export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const { data, refetch, isLoading } = useMeQuery();
   const [toggleFavoriteAPI] = useToggleFavoriteMutation();
-  
-  const favoriteProperties=useMemo(()=>{
-    return data?.user?.favoriteProperties ?? [];
-  },[data])
   const favoritePropertiesId=useMemo(()=>{
-    return data?.user?.favoriteProperties?.map((p:any)=>p.id) ?? [];
-    //return data?.user?.favoriteProperties.map((p:any)=>p.id) ?? []; (Code cũ)
+    return data?.user?.favoriteProperties.map((p:any)=>p.id) ?? []; 
   },[data])
-
+  const {data:propertyData}=useGetWishlistPropertiesQuery(favoritePropertiesId);
   useEffect(() => {
     if (data?.user) {
       setUser(data.user);
@@ -25,7 +21,7 @@ export function useUser() {
   return {
     user,
     favorites: favoritePropertiesId,
-    favoriteProperties,
+    favoriteProperties:propertyData?.docs ?? [],
     toggleFavorite:toggleFavoriteAPI,
     setUser,       // Nếu muốn set trực tiếp
     reloadUser: refetch,

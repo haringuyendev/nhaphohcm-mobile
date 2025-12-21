@@ -7,9 +7,6 @@ import { ChevronRight, FileText, Heart, HelpCircle, LogOut, Settings, User } fro
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-
-
-
 export default function ProfileScreen() {
   const router=useRouter()
   const { user, favorites, loading } = useUser();
@@ -41,7 +38,7 @@ export default function ProfileScreen() {
       onPress: () => console.log('Help'),
     },
   ];
-  const [logOut, { isLoading }] = useLogoutMutation();
+  const [logOut] = useLogoutMutation();
 
   const handleLogout = async () => {
     try {

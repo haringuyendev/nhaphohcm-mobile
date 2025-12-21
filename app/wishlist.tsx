@@ -3,7 +3,6 @@ import { PropertyCard } from '@/components/PropertyCard';
 import { useUser } from '@/hooks/use-user';
 import { Stack, useRouter } from 'expo-router';
 import {
-  Alert,
   FlatList,
   StyleSheet,
   Text,
@@ -17,22 +16,8 @@ export default function WishlistScreen() {
 
   const {
     favoriteProperties,
-    favorites,
-    toggleFavorite,
     loading,
   } = useUser();
-
-  const handleToggleFavorite = async (id: string) => {
-    try {
-      await toggleFavorite({ propertyId: id }).unwrap();
-      // favorites tự cập nhật → UI re-render
-    } catch (error) {
-      Alert.alert(
-        'Lỗi',
-        'Không thể cập nhật yêu thích. Vui lòng thử lại.'
-      );
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
@@ -40,14 +25,13 @@ export default function WishlistScreen() {
       <Header />
 
       <FlatList
-        data={favoriteProperties.filter((p) => favorites.includes(p.id))}
+        data={favoriteProperties}
         keyExtractor={(item) => item.id}
         refreshing={loading}
         renderItem={({ item }) => (
           <View>
             <PropertyCard
               property={item}
-              isFavorite={true}
             />
           </View>
         )}
@@ -65,7 +49,7 @@ export default function WishlistScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.createButtonText}>
-                  Thích tin ngay
+                  Thêm tin ngay!
                 </Text>
               </TouchableOpacity>
             </View>

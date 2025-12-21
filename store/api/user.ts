@@ -20,7 +20,7 @@ export const userApi = baseApi.injectEndpoints({
         method: "POST",
         body: { propertyId },
       }),
-      invalidatesTags: ["User", "Properties"],
+      invalidatesTags: ["User"],
     })
   }),
 });
