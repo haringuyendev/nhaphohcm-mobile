@@ -59,10 +59,6 @@ function RootLayoutNav() {
         name="property/[id]"
         options={{ headerShown: true, headerTitle: '' }}
       />
-      <Stack.Screen
-        name="community/[id]"
-        options={{ headerShown: true, headerTitle: '' }}
-      />
     </Stack>
   );
 }

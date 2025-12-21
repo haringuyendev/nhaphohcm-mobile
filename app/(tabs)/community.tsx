@@ -20,6 +20,7 @@ import {
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Modal,
   Pressable,
@@ -44,12 +45,16 @@ export default function CommunityScreen() {
 
   const {
     data: getJoinedCommunitiesData,
-    isLoading,
-    refetch,
+    isLoading: getJoinedCommunitiesLoading,
+    refetch: refetchJoinedCommunities,
   } = useGetCommunitiesQuery({});
   const getJoinedCommunities = getJoinedCommunitiesData?.docs ?? [];
 
-  const { data: postsData } = useGetPostsQuery({});
+  const {
+    data: postsData,
+    isLoading: postsLoading,
+    refetch: refetchPosts,
+  } = useGetPostsQuery({});
   const posts = postsData?.docs || [];
 
   const [activeTab, setActiveTab] = useState<TabType>('for-you');
@@ -58,9 +63,31 @@ export default function CommunityScreen() {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  if (getJoinedCommunitiesLoading || postsLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Cộng đồng</Text>
+        </View>
+        <View
+          style={[
+            styles.content,
+            { justifyContent: 'center', alignItems: 'center' },
+          ]}
+        >
+          <ActivityIndicator size="large" color="#EF4444" />
+          <Text style={{ textAlign: 'center', marginTop: 20 }}>
+            Đang tải...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetchJoinedCommunities(), refetchPosts()]);
     setRefreshing(false);
   };
 
