@@ -6,11 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
+  console.log(user)
   const { data, refetch, isLoading } = useMeQuery();
   const [toggleFavoriteAPI] = useToggleFavoriteMutation();
   const {data:statsData}=useGetMyPropertyStatsQuery()
   const favoritePropertiesId=useMemo(()=>{
-    return data?.user?.favoriteProperties.map((p:any)=>p.id) ?? []; 
+    return data?.user?.favoriteProperties?.map((p:any)=>p.id) ?? []; 
   },[data])
 
   const stats = useMemo(() => {
