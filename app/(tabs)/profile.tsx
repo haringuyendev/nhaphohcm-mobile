@@ -6,10 +6,13 @@ import * as SecureStore from "expo-secure-store";
 import { ChevronRight, FileText, Heart, HelpCircle, LogOut, Settings, User } from 'lucide-react-native';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { Image } from 'expo-image';
+import { resolveImageUrl } from '@/utils';
+import { Media } from '@/types';
 export default function ProfileScreen() {
-  const router=useRouter()
-  const { user, favorites, loading } = useUser();
+  const router = useRouter()
+  const { user, favorites, loading, stats } = useUser();
+  console.log(stats);
   const menuItems = [
     {
       icon: User,
@@ -50,17 +53,6 @@ export default function ProfileScreen() {
     }
   }
 
-  const { data: activePostsData } = useGetMyPropertiesByStatusQuery(
-    {
-      userId: user?.id || '',
-      status: 'published',
-      limit: 1,   // important: only need count
-      page: 1,
-    },
-    { skip: !user?.id }
-  );
-  const activePostCount = activePostsData?.totalDocs ?? 0; // Lấy số lượng tin đăng đang hoạt động của người dùng
-
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen
@@ -73,7 +65,20 @@ export default function ProfileScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <User size={40} color="#EF4444" />
+            <Image
+              source={{
+                uri: resolveImageUrl(
+                  ((user?.avatar as Media)?.url
+                  ) ?? 'https://via.placeholder.com/80x80?text=User',
+                ) as string,
+              }}
+              style={styles.avatar}
+              placeholder={
+                ((user?.avatar as Media)?.blurhash ||
+                'LEHV6nWB2yk8pyo0adR*.7kCMdnj')
+              }
+              contentFit="cover"
+            />
           </View>
           <Text style={styles.name}>
             {user?.name || 'Chưa cập nhật tên'}
@@ -82,22 +87,25 @@ export default function ProfileScreen() {
           <Text style={styles.phone}>
             {user?.phone || 'Chưa cập nhật số điện thoại'}
           </Text>
+          <Text style={styles.phone}>
+            {user?.email || 'Chưa cập nhật email'}
+          </Text>
         </View>
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{activePostCount}</Text>
-            <Text style={styles.statLabel}>Đang đăng</Text>
+            <Text style={styles.statValue}>{stats.published}</Text>
+            <Text style={styles.statLabel}>Đang hiển thị</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>1</Text>
+            <Text style={styles.statValue}>{stats.vip}</Text>
             <Text style={styles.statLabel}>VIP</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>1.2K</Text>
-            <Text style={styles.statLabel}>Lượt xem</Text>
+            <Text style={styles.statValue}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Đã đăng</Text>
           </View>
         </View>
 

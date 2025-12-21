@@ -21,11 +21,15 @@ export const userApi = baseApi.injectEndpoints({
         body: { propertyId },
       }),
       invalidatesTags: ["User"],
-    })
+    }),
+    getMyPropertyStats: builder.query<any, void>({
+      query: () => ({
+        url: "/api/users/my-stats",
+        method: "GET",
+      }),
+      providesTags: ["User"],
+    }),
   }),
 });
 
-export const {
-  useGetUserByIdQuery,
-  useToggleFavoriteMutation,
-} = userApi;
+export const { useGetUserByIdQuery, useToggleFavoriteMutation, useGetMyPropertyStatsQuery } = userApi;
