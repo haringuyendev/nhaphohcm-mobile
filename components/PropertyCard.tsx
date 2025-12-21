@@ -1,3 +1,4 @@
+import { useUser } from '@/hooks/use-user';
 import { District, Media, Property, Province, User } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
