@@ -29,12 +29,30 @@ export const propertiesApi = baseApi.injectEndpoints({
       },
       providesTags: ["Properties"],
     }),
+    getWishlistProperties: builder.query<any, string[]>({
+      query: (ids) => {
+        console.log(ids);
+        const where = {
+          id: {
+            in: ids,
+          },
+        };
+        return generatePayloadQuery({
+          path: "/api/properties",
+          where,
+          limit:ids.length,
+          page:1,
+          sort:"-is_vip,-bumped_at,-created_at",
+        });
+      },
+      providesTags: ["Properties"],
+    }),
 
     getMyPropertiesByStatus: builder.query<
       any,
       {
         userId: string;
-        status?: "published" | "deleted" | "expired";
+        status?: "published" | "unpublished" | "expired";
         limit?: number;
         page?: number;
       }
@@ -75,7 +93,7 @@ export const propertiesApi = baseApi.injectEndpoints({
               },
             ],
     }),
-
+    
     // GET BY ID
     getPropertyById: builder.query<Property, string>({
       query: (id: string) => `/api/properties/${id}?depth=2`,
@@ -123,7 +141,7 @@ export const propertiesApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { is_published: isPublished },
       }),
-      invalidatesTags: ["Properties", "MyProperties"],
+      invalidatesTags: ["Properties", "MyProperties", "User"],
     }),
 
     // Ẩn tin
@@ -133,7 +151,7 @@ export const propertiesApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { is_hidden: true, is_published: false },
       }),
-      invalidatesTags: ["Properties", "MyProperties"],
+      invalidatesTags: ["Properties", "MyProperties", "User"],
     }),
 
     // Hiện lại tin
@@ -143,7 +161,7 @@ export const propertiesApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { is_hidden: false, is_published: true },
       }),
-      invalidatesTags: ["Properties", "MyProperties"],
+      invalidatesTags: ["Properties", "MyProperties", "User"],
     }),
 
     // Đẩy tin
@@ -156,7 +174,7 @@ export const propertiesApi = baseApi.injectEndpoints({
           last_bumped_at: new Date().toISOString(),
         },
       }),
-      invalidatesTags: ["Properties", "MyProperties"],
+      invalidatesTags: ["Properties", "MyProperties", "User"],
     }),
 
     // Cập nhật VIP
@@ -183,7 +201,7 @@ export const propertiesApi = baseApi.injectEndpoints({
           },
         };
       },
-      invalidatesTags: ["Properties", "MyProperties"],
+      invalidatesTags: ["Properties", "MyProperties", "User"],
     }),
 
     // Xóa vĩnh viễn
@@ -192,11 +210,12 @@ export const propertiesApi = baseApi.injectEndpoints({
         url: `/api/properties/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Properties", "MyProperties"],
+      invalidatesTags: ["Properties", "MyProperties", "User"],
     }),
     getSimilarProperties: builder.query<Property[], string>({
       query: (id) => `/api/properties/similar/${id}`,
-      transformResponse: (response: { docs: Property[] }) => response.docs || [],
+      transformResponse: (response: { docs: Property[] }) =>
+        response.docs || [],
       providesTags: (result, error, id) => [
         { type: "Properties", id },
         { type: "MyProperties", id },
@@ -217,5 +236,6 @@ export const {
   useBumpPropertyMutation,
   useUpdateVipStatusMutation,
   useDeletePropertyPermanentlyMutation,
-  useGetSimilarPropertiesQuery
+  useGetSimilarPropertiesQuery,
+  useGetWishlistPropertiesQuery
 } = propertiesApi;

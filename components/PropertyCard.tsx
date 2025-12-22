@@ -1,3 +1,4 @@
+import { useUser } from '@/hooks/use-user';
 import { District, Media, Property, Province, User } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -15,10 +16,9 @@ const CARD_WIDTH = width - 32;
 
 interface PropertyCardProps {
   property: Property;
-  isFavorite: boolean;
 }
 
-export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
+export function PropertyCard({ property }: PropertyCardProps) {
   const router = useRouter();
   const timeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -33,7 +33,7 @@ export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
 
     return `${Math.floor(diff / 31104000)} năm trước`;
   };
-  // const { toggleFavorite } = useUser();
+  const { toggleFavorite, favorites } = useUser();
 
   const pricePerM2 = (() => {
     if (!property.price || !property.area) return null;
@@ -107,8 +107,8 @@ export function PropertyCard({ property, isFavorite }: PropertyCardProps) {
         <TouchableOpacity style={styles.favoriteButton} onPress={() => {}}>
           <Heart
             size={20}
-            color={isFavorite ? '#EF4444' : '#FFF'}
-            fill={isFavorite ? '#EF4444' : 'transparent'}
+            color={favorites.includes(property.id) ? '#EF4444' : '#FFF'}
+            fill={favorites.includes(property.id) ? '#EF4444' : 'transparent'}
           />
         </TouchableOpacity>
       </View>

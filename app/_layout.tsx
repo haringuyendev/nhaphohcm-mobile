@@ -18,10 +18,6 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-if (__DEV__) {
-  require('../ReactotronConfig');
-}
-
 function RootLayoutNav() {
   const dispatch = useAppDispatch();
   const [pushToken, setPushToken] = useState<string | null>(null);

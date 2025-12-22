@@ -20,12 +20,16 @@ export const userApi = baseApi.injectEndpoints({
         method: "POST",
         body: { propertyId },
       }),
-      invalidatesTags: ["User", "Properties"],
-    })
+      invalidatesTags: ["User"],
+    }),
+    getMyPropertyStats: builder.query<any, void>({
+      query: () => ({
+        url: "/api/users/my-stats",
+        method: "GET",
+      }),
+      providesTags: ["User"],
+    }),
   }),
 });
 
-export const {
-  useGetUserByIdQuery,
-  useToggleFavoriteMutation,
-} = userApi;
+export const { useGetUserByIdQuery, useToggleFavoriteMutation, useGetMyPropertyStatsQuery } = userApi;
