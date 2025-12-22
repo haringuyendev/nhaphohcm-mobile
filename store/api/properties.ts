@@ -31,7 +31,6 @@ export const propertiesApi = baseApi.injectEndpoints({
     }),
     getWishlistProperties: builder.query<any, string[]>({
       query: (ids) => {
-        console.log(ids);
         const where = {
           id: {
             in: ids,
@@ -149,7 +148,7 @@ export const propertiesApi = baseApi.injectEndpoints({
       query: (id) => ({
         url: `/api/properties/${id}`,
         method: "PATCH",
-        body: { is_hidden: true, is_published: false },
+        body: { is_published: false },
       }),
       invalidatesTags: ["Properties", "MyProperties", "User"],
     }),
@@ -159,7 +158,7 @@ export const propertiesApi = baseApi.injectEndpoints({
       query: (id) => ({
         url: `/api/properties/${id}`,
         method: "PATCH",
-        body: { is_hidden: false, is_published: true },
+        body: { is_published: true },
       }),
       invalidatesTags: ["Properties", "MyProperties", "User"],
     }),

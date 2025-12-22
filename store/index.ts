@@ -11,8 +11,14 @@ export const store = configureStore({
     [baseApi.reducerPath]: baseApi.reducer,
   },
 
-  middleware: (getDefault) =>
-    getDefault().concat(baseApi.middleware),
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        // Bỏ qua kiểm tra cho tất cả action và state của RTK Query
+        ignoredActions: [baseApi.reducerPath + '/*'],
+        ignoredPaths: [baseApi.reducerPath],
+      },
+    }).concat(baseApi.middleware),
 });
 
 // Types
