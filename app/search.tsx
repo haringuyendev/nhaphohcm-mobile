@@ -16,12 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PropertyCard } from '@/components/PropertyCard';
 import { SkeletonCard } from '@/components/Skeleton/PropertySkeleton';
 import { useProperties } from '@/hooks/use-properties';
-import { useUser } from '@/hooks/use-user';
 
 export default function SearchScreen() {
   // UI state
   const [showFilters, setShowFilters] = useState(false);
-  const { favorites, toggleFavorite } = useUser();
   const {
     properties: results,
     keyword,
@@ -31,7 +29,6 @@ export default function SearchScreen() {
     applyFilters,
     handleLoadMore,
     clearFilters,
-    isFetching,
     propertiesLoading,
     propertyHasNextPage,
   } = useProperties();
@@ -109,9 +106,7 @@ export default function SearchScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <PropertyCard
-              property={item}
-              isFavorite={favorites.includes(item.id)}
-            />
+              property={item}/>
           )}
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}

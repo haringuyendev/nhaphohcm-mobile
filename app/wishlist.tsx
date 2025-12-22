@@ -2,6 +2,7 @@ import { Header } from '@/components/Headers/Header';
 import { PropertyCard } from '@/components/PropertyCard';
 import { useUser } from '@/hooks/use-user';
 import { Stack, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -17,7 +18,13 @@ export default function WishlistScreen() {
   const {
     favoriteProperties,
     loading,
+    favoriteLoading,
+    reloadFavorite
   } = useUser();
+
+  const handleRefetch=useCallback(()=>{
+    reloadFavorite()
+  },[reloadFavorite])
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
@@ -27,7 +34,8 @@ export default function WishlistScreen() {
       <FlatList
         data={favoriteProperties}
         keyExtractor={(item) => item.id}
-        refreshing={loading}
+        refreshing={loading||favoriteLoading}
+        onRefresh={handleRefetch}
         renderItem={({ item }) => (
           <View>
             <PropertyCard
@@ -37,7 +45,7 @@ export default function WishlistScreen() {
         )}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          !loading ? (
+          !loading && !favoriteLoading ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
                 Chưa có tin yêu thích nào

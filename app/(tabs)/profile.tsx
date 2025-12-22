@@ -1,18 +1,17 @@
 import { useUser } from '@/hooks/use-user';
 import { useLogoutMutation } from '@/store/api/auth';
-import { useGetMyPropertiesByStatusQuery } from '@/store/api/properties';
 import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from "expo-secure-store";
 import { ChevronRight, FileText, Heart, HelpCircle, LogOut, Settings, User } from 'lucide-react-native';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { resolveImageUrl } from '@/utils';
 import { Media } from '@/types';
+import { useCallback } from 'react';
 export default function ProfileScreen() {
   const router = useRouter()
-  const { user, favorites, loading, stats } = useUser();
-  console.log(stats);
+  const { user, favorites, loading, stats, reloadStats, reloadUser, statsLoading } = useUser();
   const menuItems = [
     {
       icon: User,
@@ -54,6 +53,10 @@ export default function ProfileScreen() {
       console.error('Logout failed:', error);
     }
   }
+  const handleReloadUser = useCallback(() => {
+    reloadUser();
+    reloadStats();
+  }, [reloadUser, reloadStats]);
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
@@ -64,7 +67,9 @@ export default function ProfileScreen() {
         }}
       />
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+      refreshControl={<RefreshControl refreshing={loading || statsLoading} onRefresh={handleReloadUser} />} 
+      style={styles.content}>
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
             <Image
@@ -77,7 +82,7 @@ export default function ProfileScreen() {
               style={styles.avatar}
               placeholder={
                 ((user?.avatar as Media)?.blurhash ||
-                'LEHV6nWB2yk8pyo0adR*.7kCMdnj')
+                  'LEHV6nWB2yk8pyo0adR*.7kCMdnj')
               }
               contentFit="cover"
             />

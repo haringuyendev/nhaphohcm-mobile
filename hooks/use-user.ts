@@ -6,9 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
-  const { data, refetch, isLoading } = useMeQuery();
+  const { data, refetch, isLoading: userLoading } = useMeQuery();
   const [toggleFavoriteAPI] = useToggleFavoriteMutation();
-  const {data:statsData}=useGetMyPropertyStatsQuery()
+  const {data:statsData, refetch:statsRefetch, isLoading:statsLoading }=useGetMyPropertyStatsQuery()
   const favoritePropertiesId=useMemo(()=>{
     return data?.user?.favoriteProperties?.map((p:any)=>p.id) ?? []; 
   },[data])
@@ -33,7 +33,7 @@ export function useUser() {
     };
   }, [statsData]);
 
-  const {data:propertyData}=useGetWishlistPropertiesQuery(favoritePropertiesId);
+  const {data:propertyData, refetch:favoriteRefetch, isLoading:favoriteLoading}=useGetWishlistPropertiesQuery(favoritePropertiesId);
   useEffect(() => {
     if (data?.user) {
       setUser(data.user);
@@ -47,7 +47,11 @@ export function useUser() {
     toggleFavorite:toggleFavoriteAPI,
     setUser,       // Nếu muốn set trực tiếp
     reloadUser: refetch,
-    loading: isLoading,
+    reloadStats:statsRefetch,
+    reloadFavorite:favoriteRefetch,
+    loading: userLoading,
+    statsLoading,
     stats,
+    favoriteLoading,
   };
 }

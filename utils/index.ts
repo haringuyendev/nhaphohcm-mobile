@@ -167,7 +167,6 @@ export function buildWhereFromStatus(params: {
       case 'unpublished':
         conditions.push(
           { is_published: { equals: false } },
-          { is_hidden: { equals: false } }
         );
         break;
 
