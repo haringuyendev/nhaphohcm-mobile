@@ -4,8 +4,6 @@ import { BannerSection } from '@/components/Home/BannerSection';
 import { CategoriesSection } from '@/components/Home/CategoriesSection';
 import { VipPropertiesSection } from '@/components/Home/VipPropertiesSection';
 import { PropertiesList } from '@/components/Home/PropertiesList';
-import { PropertyListSkeleton } from '@/components/Home/PropertyListSkeleton';
-import { useProperties } from '@/hooks/use-properties';
 
 import { Stack } from 'expo-router';
 import React from 'react';
