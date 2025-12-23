@@ -105,7 +105,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
           </View>
         )}
 
-        <TouchableOpacity style={styles.favoriteButton} onPress={() => {}}>
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={handleFavorite}
+        >
           <Heart
             size={20}
             color={favorites.includes(property.id) ? '#EF4444' : '#FFF'}

@@ -18,10 +18,6 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-if (__DEV__) {
-  require('../ReactotronConfig');
-}
-
 function RootLayoutNav() {
   const dispatch = useAppDispatch();
   const [pushToken, setPushToken] = useState<string | null>(null);
@@ -57,6 +53,14 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="property/[id]"
+        options={{ headerShown: true, headerTitle: '' }}
+      />
+      <Stack.Screen
+        name="community/[id]"
+        options={{ headerShown: true, headerTitle: '' }}
+      />
+      <Stack.Screen
+        name="editpost/[id]"
         options={{ headerShown: true, headerTitle: '' }}
       />
     </Stack>

@@ -1,92 +1,75 @@
 // utils/lexicalMarkdownConverter.ts
-
 import { createHeadlessEditor } from '@lexical/headless';
 import {
   $convertToMarkdownString,
   $convertFromMarkdownString,
   TRANSFORMERS,
 } from '@lexical/markdown';
-import { $getRoot, LineBreakNode } from 'lexical'; // ← QUAN TRỌNG: Import LinebreakNode
+import { $getRoot } from 'lexical';
 
-// Tạo editor headless với các node cần thiết
 const editor = createHeadlessEditor({
-  nodes: [
-    LineBreakNode, // ← Bắt buộc để hỗ trợ <br> và linebreak trong JSON
-    // Nếu sau này dùng bold, italic, list... thì thêm các node tương ứng
-    // Ví dụ: BoldNode, ItalicNode, ListNode, ListItemNode, HeadingNode...
-  ],
-  onError: (error) => {
-    console.error('Lexical headless error:', error);
-  },
+  nodes: [],
+  onError: (error) => console.error('Lexical headless error:', error),
 });
 
-/**
- * Lexical JSON string → Markdown string
- */
-export function lexicalToMarkdown(lexicalJsonString: string): string {
-  let markdown = '';
+export function lexicalToMarkdown(lexical: any): string {
+  if (!lexical) return '';
 
   try {
-    const editorState = editor.parseEditorState(JSON.parse(lexicalJsonString));
+    const json = typeof lexical === 'string' ? JSON.parse(lexical) : lexical;
+    const editorState = editor.parseEditorState(json);
     editor.setEditorState(editorState);
 
+    let markdown = '';
     editor.read(() => {
       markdown = $convertToMarkdownString(TRANSFORMERS);
     });
+    return markdown.trim();
   } catch (error) {
     console.error('lexicalToMarkdown error:', error);
-    // Fallback: extract plain text
-    try {
-      const state = JSON.parse(lexicalJsonString);
-      markdown = extractPlainTextFromLexical(state);
-    } catch {
-      markdown = '';
-    }
+    return extractPlainText(lexical);
   }
-
-  return markdown.trim();
 }
 
 /**
- * Markdown string → Lexical JSON string
+ * Markdown string → Lexical JSON string (cho Payload)
  */
 export function markdownToLexical(markdown: string): string {
-  let lexicalJson = '';
-
   try {
+    let lexicalJson = '';
+
+    // DÙNG editor.update + read() để đảm bảo state được apply đầy đủ
     editor.update(() => {
-      // Clear trước khi import markdown
       const root = $getRoot();
       root.clear();
+      $convertFromMarkdownString(markdown || '', TRANSFORMERS);
+    });
 
-      $convertFromMarkdownString(markdown, TRANSFORMERS);
-
+    // ĐỌC STATE SAU KHI UPDATE HOÀN TẤT
+    editor.read(() => {
       lexicalJson = JSON.stringify(editor.getEditorState().toJSON());
     });
+
+    return lexicalJson;
   } catch (error) {
     console.error('markdownToLexical error:', error);
-    // Fallback empty
-    lexicalJson = JSON.stringify({
+    return JSON.stringify({
       root: { children: [], direction: null, format: '', indent: 0, type: 'root', version: 1 },
     });
   }
-
-  return lexicalJson;
 }
 
-// Helper: extract plain text nếu convert fail
-function extractPlainTextFromLexical(json: any): string {
+// Fallback extract plain text
+function extractPlainText(lexical: any): string {
   let text = '';
-  function traverse(node: any) {
-    if (node.type === 'text') {
-      text += node.text;
-    } else if (node.children) {
-      node.children.forEach(traverse);
-    }
-    if (node.type === 'linebreak') {
-      text += '\n';
-    }
-  }
-  json.root?.children?.forEach(traverse);
-  return text;
+  try {
+    const json = typeof lexical === 'string' ? JSON.parse(lexical) : lexical;
+    const traverse = (node: any) => {
+      if (node.type === 'text') text += node.text;
+      if (node.type === 'linebreak') text += '\n';
+      if (Array.isArray(node.children)) node.children.forEach(traverse);
+    };
+    json.root?.children?.forEach(traverse);
+  } catch {}
+  return text.trim();
 }

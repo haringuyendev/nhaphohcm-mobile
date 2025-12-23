@@ -20,7 +20,7 @@ export const PropertiesList = ({ listHeaderComponent }: PropertiesListProps) => 
     return (
         <FlatList
             data={properties}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => item.id ? item.id : `property-${index}`}
             renderItem={({ item }) => <PropertyCard property={item} />}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
