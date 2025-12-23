@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Dimensions,
   FlatList,
   Linking,
@@ -80,7 +81,7 @@ export default function PropertyDetailScreen() {
     itemVisiblePercentThreshold: 50,
   }).current;
 
-  const isOwner = me?.id && typeof property.seller !== 'string' && property.seller?.id === me.id;
+  const isOwner = me?.id && typeof property?.seller !== 'string' && property?.seller?.id === me.id;
 
 
   const [updateProperty, { isLoading, error }] = useUpdatePropertyMutation();
