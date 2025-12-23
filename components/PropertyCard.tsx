@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -48,11 +49,11 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
   const handlePress = () => router.push(`/property/${property.id}` as any);
 
-  // const handleFavorite = async (e: any) => {
-  //   e.stopPropagation();
+  const handleFavorite = async (e: any) => {
+    e.stopPropagation();
 
-  //   try {
-  //     const res = await toggleFavorite({ propertyId: property.id });
+    try {
+      const res = await toggleFavorite({ propertyId: property.id });
 
       if (res?.data?.isFavorite) {
         Toast.show({
@@ -104,7 +105,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
           </View>
         )}
 
-        <TouchableOpacity style={styles.favoriteButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.favoriteButton} onPress={handleFavorite}>
           <Heart
             size={20}
             color={favorites.includes(property.id) ? '#EF4444' : '#FFF'}
