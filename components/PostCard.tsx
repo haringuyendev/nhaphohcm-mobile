@@ -2,9 +2,16 @@ import { useApp } from '@/hooks/use-app';
 import {
   useAddCommentMutation,
   useGetCommentsQuery,
+  useReplyCommentMutation,
   useToggleLikeMutation,
 } from '@/store/api/socialPosts';
-import { Community, Media, SocialPost, User } from '@/store/payload-types';
+import {
+  Comment,
+  Community,
+  Media,
+  SocialPost,
+  User,
+} from '@/store/payload-types';
 import { resolveImageUrl } from '@/utils';
 import { renderLexicalNode } from '@/utils/lexical';
 import { Heart, MessageCircle, Send, Share2, X } from 'lucide-react-native';
@@ -34,16 +41,35 @@ interface PostCardProps {
 export function PostCard({ post, community }: PostCardProps) {
   const insets = useSafeAreaInsets();
 
+  console.log('Rendering PostCard for post ID:', post);
+
   const { incrementShareCount } = useApp();
   const [isAnimating, setIsAnimating] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<{
+    id: string;
+    authorName: string;
+  } | null>(null);
 
   const [toggleLike] = useToggleLikeMutation();
   const [addComment, { isLoading: isAddingComment }] = useAddCommentMutation();
+  const [replyComment, { isLoading: isReplyingComment }] =
+    useReplyCommentMutation();
   const { data: commentsResponse, isLoading: isCommentsLoading } =
     useGetCommentsQuery(post.id, { skip: !isCommentModalOpen });
-  const comments = commentsResponse?.docs || [];
+  const allComments = commentsResponse?.docs || [];
+
+  // Filter root comments (no parentComment) and group replies
+  const rootComments = allComments.filter(
+    (comment: any) => comment.parentComment === null
+  );
+  const getReplies = (parentId: string) =>
+    allComments.filter(
+      (comment: any) =>
+        comment.parentComment?.id === parentId ||
+        comment.parentComment === parentId
+    );
 
   const handleLike = async () => {
     try {
@@ -60,13 +86,31 @@ export function PostCard({ post, community }: PostCardProps) {
   const handleCloseComment = () => {
     setIsCommentModalOpen(false);
     setCommentText('');
+    setReplyingTo(null);
+  };
+
+  const handleReplyComment = (commentId: string, authorName: string) => {
+    setReplyingTo({ id: commentId, authorName });
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+    setCommentText('');
   };
 
   const handleSubmitComment = async () => {
     if (!commentText.trim()) return;
 
     try {
-      await addComment({ postId: post.id, text: commentText.trim() });
+      if (replyingTo) {
+        await replyComment({
+          parentCommentId: replyingTo.id,
+          text: commentText.trim(),
+        });
+        setReplyingTo(null);
+      } else {
+        await addComment({ postId: post.id, text: commentText.trim() });
+      }
       setCommentText('');
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -258,29 +302,108 @@ export function PostCard({ post, community }: PostCardProps) {
                   <ActivityIndicator size="large" color="#3B82F6" />
                   <Text style={styles.loadingText}>Đang tải bình luận...</Text>
                 </View>
-              ) : comments && comments.length > 0 ? (
-                comments.map((comment: any, index: number) => (
-                  <View key={comment.id || index} style={styles.commentItem}>
-                    <Image
-                      source={{
-                        uri:
-                          resolveImageUrl(
-                            (comment.author?.avatar as Media)?.url
-                          ) ?? 'https://via.placeholder.com/40x40?text=User',
-                      }}
-                      style={styles.commentAvatar}
-                    />
-                    <View style={styles.commentContent}>
-                      <Text style={styles.commentAuthor}>
-                        {comment.author?.name ?? 'Người dùng'}
-                      </Text>
-                      <Text style={styles.commentText}>{comment.text}</Text>
-                      <Text style={styles.commentTime}>
-                        {getTimeAgo(comment.createdAt)}
-                      </Text>
+              ) : rootComments && rootComments.length > 0 ? (
+                rootComments.map((comment: any, index: number) => {
+                  const replies = getReplies(comment.id).sort(
+                    (a: Comment, b: Comment) => {
+                      return (
+                        new Date(a.createdAt).getTime() -
+                        new Date(b.createdAt).getTime()
+                      );
+                    }
+                  );
+
+                  console.log(
+                    'Rendering comment ID:',
+                    comment.id,
+                    'with replies:',
+                    replies
+                  );
+
+                  return (
+                    <View key={comment.id || index}>
+                      {/* Parent Comment */}
+                      <View style={styles.commentItem}>
+                        <Image
+                          source={{
+                            uri:
+                              resolveImageUrl(
+                                (comment.author?.avatar as Media)?.url
+                              ) ??
+                              'https://via.placeholder.com/40x40?text=User',
+                          }}
+                          style={styles.commentAvatar}
+                        />
+                        <View style={styles.commentContent}>
+                          <Text style={styles.commentAuthor}>
+                            {comment.author?.name ?? 'Người dùng'}
+                          </Text>
+                          <Text style={styles.commentText}>{comment.text}</Text>
+                          <View style={styles.commentActions}>
+                            <Text style={styles.commentTime}>
+                              {getTimeAgo(comment.createdAt)}
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() =>
+                                handleReplyComment(
+                                  comment.id,
+                                  comment.author?.name ?? 'Người dùng'
+                                )
+                              }
+                            >
+                              <Text style={styles.replyButton}>Trả lời</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Replies */}
+                      {replies.length > 0 &&
+                        replies.map((reply: any, replyIndex: number) => (
+                          <View
+                            key={reply.id || replyIndex}
+                            style={styles.replyItem}
+                          >
+                            <Image
+                              source={{
+                                uri:
+                                  resolveImageUrl(
+                                    (reply.author?.avatar as Media)?.url
+                                  ) ??
+                                  'https://via.placeholder.com/40x40?text=User',
+                              }}
+                              style={styles.replyAvatar}
+                            />
+                            <View style={styles.commentContent}>
+                              <Text style={styles.commentAuthor}>
+                                {reply.author?.name ?? 'Người dùng'}
+                              </Text>
+                              <Text style={styles.commentText}>
+                                {reply.text}
+                              </Text>
+                              <View style={styles.commentActions}>
+                                <Text style={styles.commentTime}>
+                                  {getTimeAgo(reply.createdAt)}
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() =>
+                                    handleReplyComment(
+                                      comment.id,
+                                      reply.author?.name ?? 'Người dùng'
+                                    )
+                                  }
+                                >
+                                  <Text style={styles.replyButton}>
+                                    Trả lời
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          </View>
+                        ))}
                     </View>
-                  </View>
-                ))
+                  );
+                })
               ) : (
                 <View style={styles.emptyComments}>
                   <MessageCircle size={48} color="#D1D5DB" />
@@ -294,30 +417,53 @@ export function PostCard({ post, community }: PostCardProps) {
 
             {/* Comment Input */}
             <View style={styles.commentInputContainer}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Viết bình luận..."
-                placeholderTextColor="#9CA3AF"
-                value={commentText}
-                onChangeText={setCommentText}
-                multiline
-                maxLength={500}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  (!commentText.trim() || isAddingComment) &&
-                    styles.sendButtonDisabled,
-                ]}
-                onPress={handleSubmitComment}
-                disabled={!commentText.trim() || isAddingComment}
-              >
-                {isAddingComment ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Send size={20} color="#FFFFFF" />
-                )}
-              </TouchableOpacity>
+              {replyingTo && (
+                <View style={styles.replyingToContainer}>
+                  <Text style={styles.replyingToText}>
+                    Đang trả lời{' '}
+                    <Text style={styles.replyingToName}>
+                      {replyingTo.authorName}
+                    </Text>
+                  </Text>
+                  <TouchableOpacity onPress={handleCancelReply}>
+                    <X size={18} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder={
+                    replyingTo
+                      ? `Trả lời ${replyingTo.authorName}...`
+                      : 'Viết bình luận...'
+                  }
+                  placeholderTextColor="#9CA3AF"
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    (!commentText.trim() ||
+                      isAddingComment ||
+                      isReplyingComment) &&
+                      styles.sendButtonDisabled,
+                  ]}
+                  onPress={handleSubmitComment}
+                  disabled={
+                    !commentText.trim() || isAddingComment || isReplyingComment
+                  }
+                >
+                  {isAddingComment || isReplyingComment ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Send size={20} color="#FFFFFF" />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -488,7 +634,30 @@ const styles = StyleSheet.create({
   commentTime: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  commentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 4,
+    gap: 16,
+  },
+  replyButton: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  replyItem: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingLeft: 52,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  replyAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E5E7EB',
   },
   emptyComments: {
     flex: 1,
@@ -508,13 +677,30 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   commentInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+  },
+  replyingToContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  replyingToText: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  replyingToName: {
+    fontWeight: '600',
+    color: '#111827',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   commentInput: {
     flex: 1,
