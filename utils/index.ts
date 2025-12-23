@@ -167,7 +167,6 @@ export function buildWhereFromStatus(params: {
       case 'unpublished':
         conditions.push(
           { is_published: { equals: false } },
-          { is_hidden: { equals: false } }
         );
         break;
 
@@ -286,6 +285,7 @@ interface PayloadQueryOptions {
   sort?: string | string[];
   where?: Record<string, any>;
   otherParams?: Record<string, any>; // optional (expand: depth, populate...)
+  select?: Record<string, any>;
 }
 
 export function generatePayloadQuery({
@@ -295,6 +295,7 @@ export function generatePayloadQuery({
   sort,
   where = {},
   otherParams = {},
+  select = {},
 }: PayloadQueryOptions) {
   const queryString = qs.stringify(
     {
@@ -303,6 +304,7 @@ export function generatePayloadQuery({
       ...(sort !== undefined ? { sort } : {}),
       where,
       ...otherParams,
+      select,
     },
     { encode: false }
   );

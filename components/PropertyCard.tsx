@@ -68,7 +68,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
           text2: property.title,
         });
       }
-    } catch (err) {
+    } catch (err:any) {
       Toast.show({
         type: 'realEstateError',
         text1: 'Thao tác thất bại!',

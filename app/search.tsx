@@ -1,7 +1,8 @@
+// app/search.tsx hoặc app/(tabs)/search.tsx
 import FiltersPanel from '@/components/search/FiltersPanel';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SlidersHorizontal, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -16,12 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PropertyCard } from '@/components/PropertyCard';
 import { SkeletonCard } from '@/components/Skeleton/PropertySkeleton';
 import { useProperties } from '@/hooks/use-properties';
-import { useUser } from '@/hooks/use-user';
 
 export default function SearchScreen() {
-  // UI state
+  const { is_vip } = useLocalSearchParams<{ is_vip?: string }>(); // Lấy param
   const [showFilters, setShowFilters] = useState(false);
-  const { favorites, toggleFavorite } = useUser();
+
   const {
     properties: results,
     keyword,
@@ -31,12 +31,22 @@ export default function SearchScreen() {
     applyFilters,
     handleLoadMore,
     clearFilters,
-    isFetching,
     propertiesLoading,
     propertyHasNextPage,
   } = useProperties();
 
-  // SKELETON
+  // Khi URL có ?is_vip=true → tự động áp dụng filter VIP
+  useEffect(() => {
+    if (is_vip === 'true') {
+      applyFilters({ ...filters, is_vip: true });
+    } else if (is_vip === 'false') {
+      // Nếu muốn hỗ trợ ?is_vip=false → bỏ filter VIP
+      const newFilters = { ...filters };
+      delete newFilters.is_vip;
+      applyFilters(newFilters);
+    }
+  }, [is_vip]);
+
   const renderSkeleton = () => (
     <FlatList
       data={[1, 2, 3, 4, 5]}
@@ -50,7 +60,7 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <Stack.Screen
         options={{
-          headerTitle: 'Tìm kiếm',
+          headerTitle: filters.is_vip ? 'Tin VIP' : 'Tìm kiếm',
           headerTitleStyle: { fontWeight: '700' },
         }}
       />
@@ -66,8 +76,7 @@ export default function SearchScreen() {
             placeholderTextColor="#9CA3AF"
           />
 
-          {/* CLEAR BUTTON */}
-          {keyword.length > 0 && (
+          {(keyword.length > 0 || Object.keys(filters).length > 0) && (
             <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
               <X size={18} color="#9CA3AF" />
             </TouchableOpacity>
@@ -96,7 +105,7 @@ export default function SearchScreen() {
         <Text style={styles.resultsText}>
           {propertiesLoading && page === 1
             ? 'Đang tải...'
-            : `${results.length} kết quả`}
+            : `${results.length} kết quả${filters.is_vip ? ' VIP' : ''}`}
         </Text>
       </View>
 
@@ -107,22 +116,14 @@ export default function SearchScreen() {
         <FlatList
           data={results}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <PropertyCard
-              property={item}
-              isFavorite={favorites.includes(item.id)}
-            />
-          )}
+          renderItem={({ item }) => <PropertyCard property={item} />}
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.35}
+          
           ListFooterComponent={() =>
             propertyHasNextPage ? (
-              <ActivityIndicator
-                size="small"
-                color="#EF4444"
-                style={{ padding: 20 }}
-              />
+              <ActivityIndicator size="small" color="#EF4444" style={{ padding: 20 }} />
             ) : null
           }
           ListEmptyComponent={
@@ -138,9 +139,7 @@ export default function SearchScreen() {
   );
 }
 
-//
-// STYLES
-//
+// Styles giữ nguyên
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   searchContainer: { flexDirection: 'row', padding: 16, gap: 12 },

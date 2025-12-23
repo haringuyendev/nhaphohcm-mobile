@@ -3,7 +3,7 @@ import { PropertyCard } from '@/components/PropertyCard';
 import { mockVIPPackages } from '@/mocks/data';
 import { Stack, useRouter } from 'expo-router';
 import { Clock, Edit, EyeOff, Trash2, TrendingUp, Zap } from 'lucide-react-native';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -26,7 +26,7 @@ const statusMap: Record<TabType, 'published' | 'unpublished' | 'expired'> = {
 
 export default function MyPostsScreen() {
   const router = useRouter();
-  const { user, stats } = useUser();
+  const { user, stats, reloadStats } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('active');
 
   const currentStatus = statusMap[activeTab];
@@ -35,6 +35,7 @@ export default function MyPostsScreen() {
     data: propertiesData,
     isLoading,
     isFetching,
+    refetch,
   } = useGetMyPropertiesByStatusQuery(
     {
       userId: user?.id || '',
@@ -46,8 +47,6 @@ export default function MyPostsScreen() {
   );
 
   const properties = propertiesData?.docs || [];
-  const totalCount = propertiesData?.totalDocs || 0;
-
   // Mutations
   const [bumpProperty] = useBumpPropertyMutation();
   const [updateVipStatus] = useUpdateVipStatusMutation();
@@ -124,6 +123,11 @@ export default function MyPostsScreen() {
       ]
     );
   };
+
+  const handleRefetch = useCallback(() => {
+    refetch();
+    reloadStats();
+  }, [refetch, reloadStats]);
 
   const renderActions = (property: any) => (
     <View style={styles.actionsContainer}>
@@ -235,6 +239,8 @@ export default function MyPostsScreen() {
         <FlatList
           data={properties}
           keyExtractor={(item) => item.id}
+          onRefresh={handleRefetch}
+          refreshing={isLoading || isFetching}
           renderItem={({ item }) => (
             <View>
               <PropertyCard property={item} />

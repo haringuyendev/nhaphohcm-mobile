@@ -17,7 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { X, Upload, ChevronDown } from 'lucide-react-native';
 import { TransactionType, Direction, PropertyImage } from '@/types/property';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCreatePropertyMutation, useGetPropertyByIdQuery, useUpdatePropertyMutation } from '@/store/api/properties';
+import { useGetPropertyByIdQuery, useUpdatePropertyMutation } from '@/store/api/properties';
 import { useGetDistrictsQuery, useGetPropertyTypesQuery, useGetProvincesQuery, useGetWardsQuery } from '@/store/api/filter-api';
 import { useCreateMediaMutation } from '@/store/api/media';
 import { useUser } from '@/hooks/use-user';
@@ -96,7 +96,7 @@ export default function PostScreen() {
             console.log(property);
             // Basic info
             setTitle(property.title || '');
-            setPropertyType((property.type.id as any) || '');
+            setPropertyType((property.type as any).id || '');
             setPrice(property.price ? (property.price / (property.price >= 1e9 ? 1e9 : 1e6)).toString() : '');
             setPriceUnit(property.price >= 1e9 ? 'billion' : 'million');
             setArea(property.area?.toString() || '');

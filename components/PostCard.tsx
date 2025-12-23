@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Share as RNShare } from 'react-native';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { useApp } from '@/hooks/use-app';
-import { Community, Post } from '@/types/community';
+import { Community, Media, SocialPost, User } from '@/types/community';
+import { renderLexicalNode } from '@/utils/lexical';
+import { resolveImageUrl } from '@/utils';
 
 interface PostCardProps {
-  post: Post;
+  post: SocialPost;
   community?: Community
 }
 
@@ -61,14 +63,14 @@ export function PostCard({ post, community }: PostCardProps) {
 
           {/* Avatar chính: nếu có cộng đồng thì dùng ảnh cộng đồng, nếu không dùng avatar user */}
           <Image
-            source={{ uri: community?.coverImage ?? post?.userAvatar }}
+            source={{ uri: resolveImageUrl((community?.cover as Media)?.url) ?? ((post?.author as User)?.avatar as Media)?.url ?? 'https://via.placeholder.com/80x80?text=User' }}
             style={styles.groupAvatar}
           />
 
           {/* Avatar user chồng lên — chỉ hiển thị nếu có community */}
-          {community && (
+          {post?.community && (
             <Image
-              source={{ uri: post?.userAvatar }}
+              source={{ uri: resolveImageUrl((post?.author.avatar as Media)?.url) ?? 'https://via.placeholder.com/80x80?text=User' }}
               style={styles.overlayUserAvatar}
             />
           )}
@@ -76,31 +78,31 @@ export function PostCard({ post, community }: PostCardProps) {
 
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={styles.groupName}>
-            {community?.name ?? post?.userName}
+            {post?.community?.name ?? post?.author?.name}
           </Text>
 
           {/* Nếu có group → hiển thị người đăng + thời gian  
         Nếu không có group → chỉ hiển thị thời gian */}
           <Text style={styles.postAuthor}>
-            {community ? `${post?.userName} · ${getTimeAgo(post.createdAt)}`
+            {post?.community ? `${post?.author.name} · ${getTimeAgo(post.createdAt)}`
               : getTimeAgo(post.createdAt)}
           </Text>
         </View>
       </View>
 
       {/* Nội dung bài viết */}
-      <Text style={styles.content}>{post.content}</Text>
+      <Text style={styles.content}>{renderLexicalNode(post?.content?.root)}</Text>
 
       {/* Hình ảnh */}
-      {post.images && post.images.length > 0 && (
+      {post?.attachments && post?.attachments?.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           style={styles.imagesContainer}
           contentContainerStyle={styles.imagesContent}>
-          {post.images.map((uri, index) => (
+          {post?.attachments?.map((attachment, index) => (
             <Image
               key={index}
-              source={{ uri }}
-              style={[styles.postImage, post.images!.length === 1 && styles.singleImage]}
+              source={{ uri: resolveImageUrl((attachment.file as Media)?.url) ?? 'https://via.placeholder.com/80x80?text=User' }}
+              style={[styles.postImage, post?.attachments?.length === 1 && styles.singleImage]}
             />
           ))}
         </ScrollView>
@@ -108,25 +110,23 @@ export function PostCard({ post, community }: PostCardProps) {
 
       {/* Stats */}
       <View style={styles.stats}>
-        <Text style={styles.statText}>
-          {post.likeCount > 0 && `${post.likeCount.toLocaleString('vi-VN')} lượt thích`}
-        </Text>
+        {(post?.likeCount ?? 0) > 0 && (
+          <Text style={styles.statText}>
+            {post?.likeCount?.toLocaleString('vi-VN')} lượt thích
+          </Text>
+        )}
 
-        <View style={styles.rightStats}>
-          {post.commentCount > 0 && (
-            <Text style={styles.statText}>{post.commentCount} bình luận</Text>
-          )}
-          {post.shareCount > 0 && (
-            <Text style={styles.statText}>{post.shareCount} chia sẻ</Text>
-          )}
-        </View>
+        {(post?.commentCount ?? 0) > 0 && (
+          <Text style={styles.statText}>
+            {post?.commentCount?.toLocaleString('vi-VN')} bình luận
+          </Text>
+        )}
       </View>
-
       {/* Actions */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-          <Heart size={22} color={post.isLiked ? '#EF4444' : '#6B7280'} fill={post.isLiked ? '#EF4444' : 'transparent'} />
-          <Text style={[styles.actionText, post.isLiked && styles.likedText]}>Thích</Text>
+          <Heart size={22} color={post?.isLiked ? '#EF4444' : '#6B7280'} fill={post?.isLiked ? '#EF4444' : 'transparent'} />
+          <Text style={[styles.actionText, post?.isLiked && styles.likedText]}>Thích</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={handleComment}>
