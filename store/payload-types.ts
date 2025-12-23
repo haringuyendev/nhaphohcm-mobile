@@ -236,6 +236,7 @@ export interface User {
   phone: string;
   avatar?: (string | null) | Media;
   expoPushToken?: string | null;
+  favoriteProperties?: (string | Property)[] | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -253,6 +254,144 @@ export interface User {
       }[]
     | null;
   password?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "properties".
+ */
+export interface Property {
+  id: string;
+  title: string;
+  type: string | PropertyType;
+  price: number;
+  area: number;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  address: string;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  images?:
+    | {
+        image: string | Media;
+        id?: string | null;
+      }[]
+    | null;
+  province: string | Province;
+  district: string | District;
+  ward?: (string | null) | Ward;
+  featured?: boolean | null;
+  is_published?: boolean | null;
+  is_hidden?: boolean | null;
+  is_vip?: boolean | null;
+  vip_activated_at?: string | null;
+  vip_expire_at?: string | null;
+  created_at?: string | null;
+  expire_at?: string | null;
+  bumped_at?: string | null;
+  last_bumped_at?: string | null;
+  /**
+   * Tự động gán theo user đang đăng nhập
+   */
+  seller: string | User;
+  /**
+   * Tự động tạo từ tiêu đề, nếu trùng sẽ thêm -1, -2...
+   */
+  slug?: string | null;
+  meta?: {
+    title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (string | null) | Media;
+    description?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "property_type".
+ */
+export interface PropertyType {
+  id: string;
+  label: string;
+  slug: string;
+  value: string;
+  description?: string | null;
+  icon?: (string | null) | Media;
+  is_active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "provinces".
+ */
+export interface Province {
+  id: string;
+  code: number;
+  name: string;
+  /**
+   * Dạng slug, ví dụ: thanh_pho_ho_chi_minh
+   */
+  codename: string;
+  division_type: 'tinh' | 'thanh_pho' | 'thanh_pho_truc_thuoc_trung_uong';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "districts".
+ */
+export interface District {
+  id: string;
+  code: number;
+  name: string;
+  /**
+   * Ví dụ: quan_binh_thanh
+   */
+  codename: string;
+  division_type: 'quan' | 'huyen' | 'thi_xa' | 'thanh_pho';
+  /**
+   * Chọn tỉnh / thành phố mà quận / huyện này thuộc về
+   */
+  province: string | Province;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wards".
+ */
+export interface Ward {
+  id: string;
+  code: number;
+  name: string;
+  /**
+   * Ví dụ: phường_binh_thanh
+   */
+  codename: string;
+  division_type: 'phuong' | 'xa';
+  /**
+   * Chọn quận / huyện mà phường / xã này thuộc về
+   */
+  district: string | District;
+  propertyCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -686,144 +825,6 @@ export interface PropertyListBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "provinces".
- */
-export interface Province {
-  id: string;
-  code: number;
-  name: string;
-  /**
-   * Dạng slug, ví dụ: thanh_pho_ho_chi_minh
-   */
-  codename: string;
-  division_type: 'tinh' | 'thanh_pho' | 'thanh_pho_truc_thuoc_trung_uong';
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "districts".
- */
-export interface District {
-  id: string;
-  code: number;
-  name: string;
-  /**
-   * Ví dụ: quan_binh_thanh
-   */
-  codename: string;
-  division_type: 'quan' | 'huyen' | 'thi_xa' | 'thanh_pho';
-  /**
-   * Chọn tỉnh / thành phố mà quận / huyện này thuộc về
-   */
-  province: string | Province;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "wards".
- */
-export interface Ward {
-  id: string;
-  code: number;
-  name: string;
-  /**
-   * Ví dụ: phường_binh_thanh
-   */
-  codename: string;
-  division_type: 'phuong' | 'xa';
-  /**
-   * Chọn quận / huyện mà phường / xã này thuộc về
-   */
-  district: string | District;
-  propertyCount?: number | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "properties".
- */
-export interface Property {
-  id: string;
-  title: string;
-  type: string | PropertyType;
-  price: number;
-  area: number;
-  bedrooms?: number | null;
-  bathrooms?: number | null;
-  address: string;
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  images?:
-    | {
-        image: string | Media;
-        id?: string | null;
-      }[]
-    | null;
-  province: string | Province;
-  district: string | District;
-  ward?: (string | null) | Ward;
-  featured?: boolean | null;
-  is_published?: boolean | null;
-  is_hidden?: boolean | null;
-  is_vip?: boolean | null;
-  vip_activated_at?: string | null;
-  vip_expire_at?: string | null;
-  created_at?: string | null;
-  expire_at?: string | null;
-  bumped_at?: string | null;
-  last_bumped_at?: string | null;
-  /**
-   * Tự động gán theo user đang đăng nhập
-   */
-  seller: string | User;
-  /**
-   * Tự động tạo từ tiêu đề, nếu trùng sẽ thêm -1, -2...
-   */
-  slug?: string | null;
-  meta?: {
-    title?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (string | null) | Media;
-    description?: string | null;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "property_type".
- */
-export interface PropertyType {
-  id: string;
-  label: string;
-  slug: string;
-  value: string;
-  description?: string | null;
-  icon?: (string | null) | Media;
-  is_active?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "conversations".
  */
 export interface Conversation {
@@ -929,6 +930,7 @@ export interface SocialPost {
     | null;
   isHidden?: boolean | null;
   likeCount?: number | null;
+  commentCount?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -942,6 +944,9 @@ export interface Comment {
   author: string | User;
   text: string;
   parentComment?: (string | null) | Comment;
+  /**
+   * Ẩn bình luận (moderator/admin)
+   */
   isHidden?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1219,6 +1224,7 @@ export interface UsersSelect<T extends boolean = true> {
   phone?: T;
   avatar?: T;
   expoPushToken?: T;
+  favoriteProperties?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1570,6 +1576,7 @@ export interface SocialPostsSelect<T extends boolean = true> {
       };
   isHidden?: T;
   likeCount?: T;
+  commentCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,19 +1,30 @@
 import { useApp } from '@/hooks/use-app';
-import { Community, Media, SocialPost, User } from '@/types/community';
+import {
+  useAddCommentMutation,
+  useGetCommentsQuery,
+  useToggleLikeMutation,
+} from '@/store/api/socialPosts';
+import { Community, Media, SocialPost, User } from '@/store/payload-types';
 import { resolveImageUrl } from '@/utils';
 import { renderLexicalNode } from '@/utils/lexical';
-import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
+import { Heart, MessageCircle, Send, Share2, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Share as RNShare,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface PostCardProps {
   post: SocialPost;
@@ -21,17 +32,46 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, community }: PostCardProps) {
-  const { togglePostLike, incrementShareCount } = useApp();
+  const insets = useSafeAreaInsets();
+
+  const { incrementShareCount } = useApp();
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
+
+  const [toggleLike] = useToggleLikeMutation();
+  const [addComment, { isLoading: isAddingComment }] = useAddCommentMutation();
+  const { data: commentsResponse, isLoading: isCommentsLoading } =
+    useGetCommentsQuery(post.id, { skip: !isCommentModalOpen });
+  const comments = commentsResponse?.docs || [];
 
   const handleLike = async () => {
-    setIsAnimating(true);
-    await togglePostLike(post.id);
-    setTimeout(() => setIsAnimating(false), 300);
+    try {
+      await toggleLike(post.id);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
   };
 
-  const handleComment = () => {
-    Alert.alert('Bình luận', 'Tính năng bình luận đang được phát triển');
+  const handleOpenComment = () => {
+    setIsCommentModalOpen(true);
+  };
+
+  const handleCloseComment = () => {
+    setIsCommentModalOpen(false);
+    setCommentText('');
+  };
+
+  const handleSubmitComment = async () => {
+    if (!commentText.trim()) return;
+
+    try {
+      await addComment({ postId: post.id, text: commentText.trim() });
+      setCommentText('');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      Alert.alert('Lỗi', 'Không thể gửi bình luận. Vui lòng thử lại.');
+    }
   };
 
   const handleShare = async () => {
@@ -42,7 +82,7 @@ export function PostCard({ post, community }: PostCardProps) {
       });
 
       if (result.action === RNShare.sharedAction) {
-        await incrementShareCount(post.id);
+        incrementShareCount(post.id);
         Alert.alert('Thành công', 'Đã chia sẻ bài viết');
       }
     } catch (error) {
@@ -165,7 +205,10 @@ export function PostCard({ post, community }: PostCardProps) {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={handleComment}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleOpenComment}
+        >
           <MessageCircle size={22} color="#6B7280" />
           <Text style={styles.actionText}>Bình luận</Text>
         </TouchableOpacity>
@@ -175,6 +218,110 @@ export function PostCard({ post, community }: PostCardProps) {
           <Text style={styles.actionText}>Chia sẻ</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Comment Modal */}
+      <Modal
+        visible={isCommentModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseComment}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalContainer}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 },
+            ]}
+          >
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Bình luận</Text>
+              <TouchableOpacity
+                onPress={handleCloseComment}
+                style={styles.closeButton}
+              >
+                <X size={24} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Comments List */}
+            <ScrollView
+              style={styles.commentsList}
+              showsVerticalScrollIndicator={false}
+            >
+              {isCommentsLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#3B82F6" />
+                  <Text style={styles.loadingText}>Đang tải bình luận...</Text>
+                </View>
+              ) : comments && comments.length > 0 ? (
+                comments.map((comment: any, index: number) => (
+                  <View key={comment.id || index} style={styles.commentItem}>
+                    <Image
+                      source={{
+                        uri:
+                          resolveImageUrl(
+                            (comment.author?.avatar as Media)?.url
+                          ) ?? 'https://via.placeholder.com/40x40?text=User',
+                      }}
+                      style={styles.commentAvatar}
+                    />
+                    <View style={styles.commentContent}>
+                      <Text style={styles.commentAuthor}>
+                        {comment.author?.name ?? 'Người dùng'}
+                      </Text>
+                      <Text style={styles.commentText}>{comment.text}</Text>
+                      <Text style={styles.commentTime}>
+                        {getTimeAgo(comment.createdAt)}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyComments}>
+                  <MessageCircle size={48} color="#D1D5DB" />
+                  <Text style={styles.emptyText}>Chưa có bình luận nào</Text>
+                  <Text style={styles.emptySubText}>
+                    Hãy là người đầu tiên bình luận!
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Comment Input */}
+            <View style={styles.commentInputContainer}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Viết bình luận..."
+                placeholderTextColor="#9CA3AF"
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  (!commentText.trim() || isAddingComment) &&
+                    styles.sendButtonDisabled,
+                ]}
+                onPress={handleSubmitComment}
+                disabled={!commentText.trim() || isAddingComment}
+              >
+                {isAddingComment ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Send size={20} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -261,5 +408,134 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2, // Nhô ra 1 chút cho giống FB
     right: -2,
+  },
+
+  /* Comment Modal Styles */
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingBottom: 0, // Đảm bảo modal chạm đáy
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    minHeight: '50%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    position: 'relative',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 4,
+  },
+  commentsList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  commentItem: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  commentAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
+  },
+  commentContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  commentAuthor: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#374151',
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  commentTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  emptyComments: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  commentInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#111827',
+    maxHeight: 100,
+    marginRight: 12,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#93C5FD',
   },
 });

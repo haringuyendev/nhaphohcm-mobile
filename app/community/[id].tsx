@@ -1,7 +1,7 @@
 import { PostCard } from '@/components/PostCard';
 import { useApp } from '@/hooks/use-app';
 import { useGetCommunityByIdQuery } from '@/store/api/community';
-import { useGetPostsQuery } from '@/store/api/socialPosts';
+import { useGetMyFeedQuery } from '@/store/api/socialPosts';
 import { SocialPost } from '@/store/payload-types';
 import { getImageUrl } from '@/utils';
 import { renderLexicalNode } from '@/utils/lexical';
@@ -36,11 +36,9 @@ export default function CommunityDetailScreen() {
     skip: !id,
   });
 
-  const { data: postsData } = useGetPostsQuery({ community: id });
+  const { data: postsData } = useGetMyFeedQuery({ community: id });
 
   const posts: SocialPost[] = postsData?.docs || [];
-
-  console.log('Community Detail:', posts);
 
   if (isLoading) {
     return (

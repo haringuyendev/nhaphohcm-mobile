@@ -1,7 +1,10 @@
 import PropertyCard from '@/components/PropertyCard';
 import { useUser } from '@/hooks/use-user';
 import { useCreateOrGetConversationMutation } from '@/store/api/conversations';
-import { useGetPropertyByIdQuery, useGetSimilarPropertiesQuery } from '@/store/api/properties';
+import {
+  useGetPropertyByIdQuery,
+  useGetSimilarPropertiesQuery,
+} from '@/store/api/properties';
 import { Media, Property, User } from '@/types';
 import {
   formatPrice,
@@ -14,16 +17,20 @@ import { renderLexicalNode } from '@/utils/lexical';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import {
+  Bath,
+  BedDouble,
   Calendar,
+  DollarSign,
   Heart,
   MapPin,
   MessageCircle,
   Phone,
+  Ruler,
   Share2,
-  BedDouble, Bath, Ruler, DollarSign
 } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Linking,
@@ -57,12 +64,14 @@ const timeAgo = (dateStr: string) => {
 // ------------------------
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams();
-  const { data } = useGetPropertyByIdQuery(id as string, { skip: !id });
+  const { data, isLoading } = useGetPropertyByIdQuery(id as string, {
+    skip: !id,
+  });
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const { user: me, favorites, toggleFavorite } = useUser();
-  const [createOrGetConversation] =
-    useCreateOrGetConversationMutation();
-  const { data: similarProperties = [], isLoading: similarPropertiesLoading } = useGetSimilarPropertiesQuery(id as string, { skip: !id });
+  const [createOrGetConversation] = useCreateOrGetConversationMutation();
+  const { data: similarProperties = [], isLoading: similarPropertiesLoading } =
+    useGetSimilarPropertiesQuery(id as string, { skip: !id });
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       setActiveImageIndex(viewableItems[0].index || 0);
@@ -99,6 +108,22 @@ export default function PropertyDetailScreen() {
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        style={styles.container}
+        edges={['left', 'right', 'top', 'bottom']}
+      >
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.errorContainer}>
+          <ActivityIndicator size="large" color="#EF4444" />
+          <Text style={styles.errorText}>Đang tải...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!data) {
     return (
       <SafeAreaView style={styles.container}>
@@ -231,7 +256,6 @@ export default function PropertyDetailScreen() {
                 {getSellerName(property.seller)}
               </Text>
             </View>
-
           </View>
         </View>
         {/* ------------------ EXTRA INFO ------------------ */}
@@ -284,21 +308,22 @@ export default function PropertyDetailScreen() {
           </Text>
         </View>
 
-
         {similarProperties && (
           <>
             {/* ------------------ TIN ĐĂNG TƯƠNG TỰ ------------------ */}
-            {similarPropertiesLoading ? <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.similarContainer}
-            >
-              {[...Array(4)].map((_, i) => (
-                <View key={i} style={styles.similarCard}>
-                  <View style={styles.skeletonCard} />
-                </View>
-              ))}
-            </ScrollView> :
+            {similarPropertiesLoading ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.similarContainer}
+              >
+                {[...Array(4)].map((_, i) => (
+                  <View key={i} style={styles.similarCard}>
+                    <View style={styles.skeletonCard} />
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
               <View style={styles.sectionNoPadding}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Tin đăng tương tự</Text>
@@ -314,14 +339,12 @@ export default function PropertyDetailScreen() {
                 >
                   {similarProperties.map((property) => (
                     <View key={property.id} style={styles.similarCard}>
-                      <PropertyCard
-                        property={property}
-                      />
+                      <PropertyCard property={property} />
                     </View>
                   ))}
                 </ScrollView>
               </View>
-            }
+            )}
           </>
         )}
       </ScrollView>
@@ -391,12 +414,22 @@ const styles = StyleSheet.create({
   location: { marginLeft: 6, fontSize: 14, color: '#6B7280' },
 
   section: { padding: 16, borderBottomWidth: 8, borderBottomColor: '#F3F4F6' },
-  sectionNoPadding: { padding: 0, paddingTop: 16, borderBottomWidth: 8, borderBottomColor: '#F3F4F6' },
+  sectionNoPadding: {
+    padding: 0,
+    paddingTop: 16,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F3F4F6',
+  },
 
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
 
   sellerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sellerRowInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  sellerRowInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   sellerAvatar: {
     width: 50,
     height: 50,
@@ -442,10 +475,10 @@ const styles = StyleSheet.create({
   },
   messageButtonText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
   similarContainer: {
-    paddingHorizontal: 0
+    paddingHorizontal: 0,
   },
   similarCard: {
-    marginLeft: 0
+    marginLeft: 0,
   },
   skeletonCard: {
     width: 280,
