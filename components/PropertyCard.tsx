@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -48,33 +49,33 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
   const handlePress = () => router.push(`/property/${property.id}` as any);
 
-  // const handleFavorite = async (e: any) => {
-  //   e.stopPropagation();
+  const handleFavorite = async (e: any) => {
+    e.stopPropagation();
 
-  //   try {
-  //     const res = await toggleFavorite({ propertyId: property.id });
+    try {
+      const res = await toggleFavorite({ propertyId: property.id });
 
-  //     if (res?.data?.isFavorite) {
-  //       Toast.show({
-  //         type: 'realEstateSuccess',
-  //         text1: 'Đã thêm vào yêu thích ❤️',
-  //         text2: property.title,
-  //       });
-  //     } else {
-  //       Toast.show({
-  //         type: 'realEstateSuccess',
-  //         text1: 'Đã xóa khỏi yêu thích',
-  //         text2: property.title,
-  //       });
-  //     }
-  //   } catch (err) {
-  //     Toast.show({
-  //       type: 'realEstateError',
-  //       text1: 'Thao tác thất bại!',
-  //       text2: 'Vui lòng thử lại.',
-  //     });
-  //   }
-  // };
+      if (res?.data?.isFavorite) {
+        Toast.show({
+          type: 'realEstateSuccess',
+          text1: 'Đã thêm vào yêu thích ❤️',
+          text2: property.title,
+        });
+      } else {
+        Toast.show({
+          type: 'realEstateSuccess',
+          text1: 'Đã xóa khỏi yêu thích',
+          text2: property.title,
+        });
+      }
+    } catch (err: any) {
+      Toast.show({
+        type: 'realEstateError',
+        text1: 'Thao tác thất bại!',
+        text2: 'Vui lòng thử lại.',
+      });
+    }
+  };
 
   return (
     <TouchableOpacity

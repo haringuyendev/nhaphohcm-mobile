@@ -3,12 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { X } from "lucide-react-native";
 
 import {
-  useGetProvincesQuery,
   useGetDistrictsQuery,
   useGetWardsQuery,
   useGetPropertyTypesQuery,
 } from "@/store/api/filter-api";
-import { SearchFilters } from "@/app/search";
+import { SearchFilters } from "@/hooks/use-properties";
 
 export default function FiltersPanel({
   filters,
@@ -35,17 +34,9 @@ export default function FiltersPanel({
     { districtCode: localFilters.district },
     { skip: !localFilters.district }
   );
-  console.log(wards.length,localFilters.district)
 
   // PROPERTY TYPES
   const { data: propertyTypes = [], isLoading: loadingTypes } = useGetPropertyTypesQuery();
-
-  // useEffect(() => {
-  //   if (!localFilters.province) {
-  //     setLocalFilters((prev: SearchFilters) => ({ ...prev, district: undefined, ward: undefined }));
-  //   }
-  // }, [localFilters.province]);
-
   useEffect(() => {
     if (!localFilters.district) {
       setLocalFilters((prev: SearchFilters) => ({ ...prev, ward: undefined }));
@@ -97,46 +88,6 @@ export default function FiltersPanel({
             </ScrollView>
           )}
         </View>
-
-        {/* PROVINCES */}
-        {/* <View style={styles.filterGroup}>
-          <Text style={styles.filterLabel}>Tỉnh/Thành phố</Text>
-
-          {loadingProvinces ? (
-            <ActivityIndicator size="small" color="#EF4444" />
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.filterRow}>
-                {provinces.map((p) => (
-                  <TouchableOpacity
-                    key={p.code}
-                    style={[
-                      styles.filterChip,
-                      localFilters.province === p.code.toString() && styles.filterChipActive,
-                    ]}
-                    onPress={() =>
-                      setLocalFilters({
-                        ...localFilters,
-                        province: p.code.toString(),
-                        district: undefined,
-                        ward: undefined,
-                      })
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        localFilters.province === p.code.toString() && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {p.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          )}
-        </View> */}
 
         {/* DISTRICTS */}
         {localFilters.province && (

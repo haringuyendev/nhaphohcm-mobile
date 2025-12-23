@@ -1,136 +1,33 @@
-import { Banner } from '@/components/Banner';
-import { CategoryCard } from '@/components/CategoryCard';
+// app/(tabs)/home.tsx hoặc app/index.tsx
 import { Header } from '@/components/Headers/Header';
-import { PropertyCard } from '@/components/PropertyCard';
-import { SkeletonCard } from '@/components/Skeleton/PropertySkeleton';
-import { mockBanners } from '@/mocks/data';
+import { BannerSection } from '@/components/Home/BannerSection';
+import { CategoriesSection } from '@/components/Home/CategoriesSection';
+import { PropertiesList } from '@/components/Home/PropertiesList';
+import { VipPropertiesSection } from '@/components/Home/VipPropertiesSection';
 
-import { useProperties } from '@/hooks/use-properties';
-import { PropertyType } from '@/types';
-
-import { Stack, useRouter } from 'expo-router';
-import {
-  ActivityIndicator,
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Stack } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
-  const router = useRouter();
-  const {
-    properties,
-    vip_properties,
-    handleLoadMore,
-    handleRefetch,
-    propertyTypes,
-    propertiesLoading,
-    propertyHasNextPage,
-  } = useProperties();
-
-  const normalProperties = properties.filter((p) => !p.is_vip);
-
-  const renderSkeleton = () => (
-    <FlatList
-      data={[1, 2, 3, 4, 5]}
-      keyExtractor={(i, index) => `sk-${index}`}
-      renderItem={() => <SkeletonCard />}
-      contentContainerStyle={styles.listContent}
-    />
+  const ListHeader = () => (
+    <View>
+      <BannerSection />
+      <CategoriesSection />
+      <VipPropertiesSection />
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Tin đăng mới nhất</Text>
+      </View>
+    </View>
   );
-
-  const handleCategoryPress = (category: PropertyType) => {
-    router.push({
-      pathname: '/search',
-      params: { propertyType: category.value },
-    } as any);
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <Header />
-      {/* MAIN LIST */}
-      {propertiesLoading ? (
-        renderSkeleton()
-      ) : (
-        <FlatList
-          data={normalProperties}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PropertyCard property={item} />}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          refreshing={propertiesLoading}
-          onRefresh={handleRefetch}
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={() => (
-            <View>
-              {/* BANNER */}
-              <Banner banners={mockBanners} />
 
-              {/* CATEGORY */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Danh mục</Text>
-
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.categoriesContainer}
-                >
-                  {propertyTypes.map((category) => (
-                    <CategoryCard
-                      key={category.id}
-                      category={category}
-                      onPress={() => handleCategoryPress(category)}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* VIP */}
-              {vip_properties.length > 0 && (
-                <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Tin VIP nổi bật</Text>
-                    <TouchableOpacity>
-                      <Text style={styles.seeAll}>Xem tất cả</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.vipContainer}
-                  >
-                    {vip_properties.slice(0, 5).map((property) => (
-                      <View key={property.id} style={styles.vipCard}>
-                        <PropertyCard property={property} />
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Tin đăng mới nhất</Text>
-              </View>
-            </View>
-          )}
-          ListFooterComponent={() =>
-            propertyHasNextPage ? (
-              <ActivityIndicator
-                size="small"
-                color="#EF4444"
-                style={{ paddingVertical: 20 }}
-              />
-            ) : null
-          }
-        />
-      )}
+      <PropertiesList listHeaderComponent={<ListHeader />} />
     </SafeAreaView>
   );
 }
@@ -150,8 +47,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-    paddingHorizontal: 16,
-    marginBottom: 12,
   },
   seeAll: { fontSize: 14, color: '#EF4444', fontWeight: '600' },
   categoriesContainer: { paddingHorizontal: 16 },

@@ -32,10 +32,7 @@ export const propertiesApi = baseApi.injectEndpoints({
 
     // GET BY ID
     getCommunityById: builder.query<any, string>({
-      query: (id: string) => ({
-        url: `/api/communities/${id}`,
-        method: 'GET',
-      }),
+      query: (id: string) => `/api/communities/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Communities', id }],
     }),
 
@@ -73,6 +70,22 @@ export const propertiesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Communities'],
     }),
+
+    getRecommendedCommunities: builder.query<any, any>({
+      query: ({ page = 1, limit = 10 }) =>
+        `/api/communities/suggested?page=${page}&limit=${limit}`,
+      providesTags: ['Communities'],
+    }),
+    getJoinedCommunities: builder.query<any, any>({
+      query: ({ page = 1, limit = 10 }) =>
+        `/api/communities/joined?page=${page}&limit=${limit}`,
+      providesTags: ['Communities'],
+    }),
+    getManagedCommunities: builder.query<any, any>({
+      query: ({ page = 1, limit = 10 }) =>
+        `/api/communities/managed?page=${page}&limit=${limit}`,
+      providesTags: ['Communities'],
+    }),
   }),
 
   overrideExisting: false,
@@ -84,4 +97,7 @@ export const {
   useCreateCommunityMutation,
   useUpdateCommunityMutation,
   useDeleteCommunityMutation,
+  useGetRecommendedCommunitiesQuery,
+  useGetJoinedCommunitiesQuery,
+  useGetManagedCommunitiesQuery,
 } = propertiesApi;

@@ -195,7 +195,6 @@ export default function PostScreen() {
       const priceVal =
         parseFloat(price) * (priceUnit === 'billion' ? 1000000000 : 1000000);
       const descriptionLexicalJson = markdownToLexical(markdownDescription);
-      console.log(descriptionLexicalJson);
 
       const data = {
         title,

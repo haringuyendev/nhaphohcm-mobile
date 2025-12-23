@@ -14,7 +14,9 @@ import {
   Settings,
   User,
 } from 'lucide-react-native';
+import { useCallback } from 'react';
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,8 +26,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, favorites, loading, stats } = useUser();
-  console.log(stats);
+  const {
+    user,
+    favorites,
+    loading,
+    stats,
+    reloadStats,
+    reloadUser,
+    statsLoading,
+  } = useUser();
   const menuItems = [
     {
       icon: User,
@@ -67,6 +76,11 @@ export default function ProfileScreen() {
       console.error('Logout failed:', error);
     }
   };
+  const handleReloadUser = useCallback(() => {
+    reloadUser();
+    reloadStats();
+  }, [reloadUser, reloadStats]);
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <Stack.Screen
@@ -76,7 +90,15 @@ export default function ProfileScreen() {
         }}
       />
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={loading || statsLoading}
+            onRefresh={handleReloadUser}
+          />
+        }
+        style={styles.content}
+      >
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
             <Image
