@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { X } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import {
-  useGetProvincesQuery,
-  useGetDistrictsQuery,
-  useGetWardsQuery,
-  useGetPropertyTypesQuery,
-} from "@/store/api/filter-api";
 import { SearchFilters } from "@/app/search";
+import {
+  useGetDistrictsQuery,
+  useGetPropertyTypesQuery,
+  useGetWardsQuery
+} from "@/store/api/filter-api";
 
 export default function FiltersPanel({
   filters,
@@ -62,6 +61,35 @@ export default function FiltersPanel({
       </View>
 
       <ScrollView style={styles.filterContent}>
+
+        {/* Type */}
+        <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>Loại tin đăng</Text>
+
+          <View style={styles.filterRow}>
+            <TouchableOpacity
+              style={[
+                styles.filterChip,
+                localFilters.is_vip && styles.filterChipActive,
+              ]}
+              onPress={() =>
+                setLocalFilters((prev) => ({
+                  ...prev,
+                  is_vip: prev.is_vip ? undefined : true,
+                }))
+              }
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  localFilters.is_vip && styles.filterChipTextActive,
+                ]}
+              >
+                Tin VIP
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* PROPERTY TYPES */}
         <View style={styles.filterGroup}>

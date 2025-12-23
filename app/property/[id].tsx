@@ -1,7 +1,8 @@
 import PropertyCard from '@/components/PropertyCard';
 import { useUser } from '@/hooks/use-user';
 import { useCreateOrGetConversationMutation } from '@/store/api/conversations';
-import { useGetPropertyByIdQuery, useGetSimilarPropertiesQuery } from '@/store/api/properties';
+import { useCreateMediaMutation } from '@/store/api/media';
+import { useGetPropertyByIdQuery, useGetSimilarPropertiesQuery, useUpdatePropertyMutation } from '@/store/api/properties';
 import { Media, Property, User } from '@/types';
 import {
   formatPrice,
@@ -11,18 +12,22 @@ import {
   getSellerName,
 } from '@/utils';
 import { renderLexicalNode } from '@/utils/lexical';
+import { markdownToLexical } from '@/utils/lexical_converter';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import {
+  Bath,
+  BedDouble,
   Calendar,
+  DollarSign,
   Heart,
   MapPin,
   MessageCircle,
   Phone,
-  Share2,
-  BedDouble, Bath, Ruler, DollarSign
+  Ruler,
+  Share2
 } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -31,7 +36,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
@@ -59,6 +64,8 @@ export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams();
   const { data } = useGetPropertyByIdQuery(id as string, { skip: !id });
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const property = data as Property;
+
   const { user: me, favorites, toggleFavorite } = useUser();
   const [createOrGetConversation] =
     useCreateOrGetConversationMutation();
@@ -72,6 +79,47 @@ export default function PropertyDetailScreen() {
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
   }).current;
+
+  const isOwner = me?.id && typeof property.seller !== 'string' && property.seller?.id === me.id;
+
+
+  const [updateProperty, { isLoading, error }] = useUpdatePropertyMutation();
+  const [createMedia] = useCreateMediaMutation();
+
+  const [existingImages, setExistingImages] = useState<any[]>([]);
+  const [newImages, setNewImages] = useState<any[]>([]);
+
+  const [title, setTitle] = useState('');
+  const [price, setPrice] = useState('');
+  const [priceUnit, setPriceUnit] = useState<'million' | 'billion'>('billion');
+  const [area, setArea] = useState('');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [street, setStreet] = useState('');
+  const [province, setProvince] = useState<any | null>(null);
+  const [district, setDistrict] = useState<any | null>(null);
+  const [ward, setWard] = useState<any | null>(null);
+  const [markdownDescription, setMarkdownDescription] = useState<string>('');
+  
+
+
+  useEffect(() => {
+    if (!data) return;
+    const p = data as any;
+    setExistingImages(p.images || []);
+    setTitle(p.title || '');
+    setPrice(p.price ? String(p.price / 1e9) : '');
+    setPriceUnit('billion');
+    setArea(p.area ? String(p.area) : '');
+    setBedrooms(p.bedrooms ? String(p.bedrooms) : '');
+    setBathrooms(p.bathrooms ? String(p.bathrooms) : '');
+    setStreet(p.location?.street || '');
+    setProvince(typeof p.province === 'object' ? p.province : null);
+    setDistrict(typeof p.district === 'object' ? p.district : null);
+    setWard(typeof p.ward === 'object' ? p.ward : null);
+  }, [data]);
+
+
   const handleFavorite = async (e: any) => {
     e.stopPropagation();
 
@@ -99,6 +147,90 @@ export default function PropertyDetailScreen() {
       });
     }
   };
+
+  const handleUpdate = async () => {
+    try {
+      let updatedImages = existingImages; // ảnh cũ
+
+
+      // 1️⃣ Upload ảnh mới nếu có
+      if (newImages.length > 0) {
+        const uploadedImages = [];
+
+
+        for (let index = 0; index < newImages.length; index++) {
+          const img = newImages[index];
+          const formData = new FormData();
+
+
+          formData.append('file', {
+            uri: img.uri,
+            name: `property_${Date.now()}_${index}.jpg`,
+            type: 'image/jpeg',
+          } as any);
+
+
+          formData.append('_payload', JSON.stringify({
+            alt: `Ảnh cập nhật: ${title || 'Tin BĐS'}`
+          }));
+
+
+          const mediaRes = await createMedia(formData).unwrap();
+          const mediaId = mediaRes.doc?.id || mediaRes.id;
+
+
+          uploadedImages.push({ image: mediaId });
+        }
+
+
+        updatedImages = uploadedImages;
+      }
+
+
+      // 2️⃣ Build địa chỉ (lấy từ state nếu có, fallback về property)
+      const wardName = ward?.name || (property?.ward && (property.ward as any).name) || '';
+      const districtName = district?.name || (property?.district && (property.district as any).name) || '';
+      const provinceName = province?.name || (property?.province && (property.province as any).name) || '';
+      const fullAddress = `${street ? street + ", " : ""}${wardName}, ${districtName}, ${provinceName}`;
+
+
+      // 3️⃣ Chuẩn bị payload update
+      const updateData: Partial<Property> = {
+        title,
+        price: parseFloat(price) * (priceUnit === 'billion' ? 1e9 : 1e6),
+        area: parseFloat(area),
+        bedrooms: bedrooms ? parseInt(bedrooms) : undefined,
+        bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
+        address: fullAddress,
+        description: markdownDescription
+          ? JSON.parse(markdownToLexical(markdownDescription))
+          : property.description,
+        images: updatedImages,
+        province: province?.id,
+        district: district?.id,
+        ward: ward?.id,
+      };
+
+
+      // 4️⃣ Call API
+      await updateProperty({
+        id: property.id,
+        data: updateData,
+      }).unwrap();
+
+
+      Alert.alert("Thành công", "Tin đăng đã được cập nhật!", [
+        { text: "OK", onPress: () => router.back() }
+      ]);
+
+
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Lỗi", "Không thể cập nhật tin");
+    }
+  };
+
+
   if (!data) {
     return (
       <SafeAreaView style={styles.container}>
@@ -108,8 +240,6 @@ export default function PropertyDetailScreen() {
       </SafeAreaView>
     );
   }
-
-  const property = data as Property;
 
   const favorite = favorites.includes(property.id); // Tích hợp sau
 
@@ -134,6 +264,16 @@ export default function PropertyDetailScreen() {
           headerTitle: property.title,
           headerRight: () => (
             <View style={styles.headerActions}>
+              {isOwner && (
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={ handleUpdate }
+                >
+                  <Text style={styles.editButtonText}>
+                    Chỉnh sửa
+                  </Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.headerButton}>
                 <Share2 size={20} color="#111" />
               </TouchableOpacity>
@@ -148,9 +288,11 @@ export default function PropertyDetailScreen() {
                 />
               </TouchableOpacity>
             </View>
+           
           ),
         }}
       />
+
 
       <ScrollView style={styles.content}>
         {/* ------------------ IMAGES ------------------ */}
@@ -459,6 +601,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     marginBottom: 12,
+  },
+    editButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#FEE2E2',
+  },
+  editButtonText: {
+    color: '#EF4444',
+    fontWeight: '600',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   extraInfoGrid: {
     flexDirection: 'row',

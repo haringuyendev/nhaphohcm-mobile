@@ -1,10 +1,10 @@
 import { Property } from "@/types";
-import { baseApi } from "./index";
 import {
   buildWhereFromParams,
   buildWhereFromStatus,
   generatePayloadQuery,
 } from "@/utils";
+import { baseApi } from "./index";
 
 export const propertiesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -212,6 +212,8 @@ export const propertiesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Properties", "MyProperties", "User"],
     }),
+    
+    // Lấy danh sách tin tương tự
     getSimilarProperties: builder.query<Property[], string>({
       query: (id) => `/api/properties/similar/${id}`,
       transformResponse: (response: { docs: Property[] }) =>

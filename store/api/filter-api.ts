@@ -1,9 +1,8 @@
 // src/store/api/filter-api.ts
 
-import type { Province, District, Ward, PropertyType } from "@/types";
-import { baseApi } from "./index";
-import qs from "qs";
+import type { District, PropertyType, Province, Ward } from "@/types";
 import { generatePayloadQuery } from "@/utils";
+import { baseApi } from "./index";
 
 export const filterApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
