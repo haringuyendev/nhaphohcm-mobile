@@ -2,12 +2,12 @@
 import { Header } from '@/components/Headers/Header';
 import { BannerSection } from '@/components/Home/BannerSection';
 import { CategoriesSection } from '@/components/Home/CategoriesSection';
-import { VipPropertiesSection } from '@/components/Home/VipPropertiesSection';
 import { PropertiesList } from '@/components/Home/PropertiesList';
+import { VipPropertiesSection } from '@/components/Home/VipPropertiesSection';
 
 import { Stack } from 'expo-router';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {

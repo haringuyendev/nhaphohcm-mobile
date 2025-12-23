@@ -1,11 +1,48 @@
-// app/login.tsx
 import { AuthButton } from '@/components/Auth/AuthButton';
 import { AuthInput } from '@/components/Auth/AuthInput';
 import { useLoginMutation } from '@/store/api/auth';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { AlertCircle, CheckCircle } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
+
+
+
+/* ======================= TOAST CONFIG ======================= */
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={styles.toastSuccess}
+      contentContainerStyle={styles.toastContent}
+      text1Style={styles.toastTitle}
+      text2Style={styles.toastMessage}
+      renderLeadingIcon={() => (
+        <CheckCircle size={22} color={SUCCESS} />
+      )}
+    />
+  ),
+
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={styles.toastError}
+      contentContainerStyle={styles.toastContent}
+      text1Style={styles.toastTitle}
+      text2Style={styles.toastMessage}
+      renderLeadingIcon={() => (
+        <AlertCircle size={22} color={ACCENT} />
+      )}
+    />
+  ),
+};
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -15,76 +52,205 @@ export default function LoginScreen() {
   const [login, { isLoading }] = useLoginMutation();
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Toast.show({
+        type: 'error',
+        text1: 'Thiếu thông tin',
+        text2: 'Vui lòng nhập email và mật khẩu',
+        position: 'top',
+      });
+      return;
+    }
+
     try {
       const res = await login({ email, password }).unwrap();
-
-      // Payload CMS trả token ở res.token
       await SecureStore.setItemAsync('token', res.token);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Đăng nhập thành công',
+        text2: 'Chào mừng bạn quay trở lại 🎉',
+        position: 'top',
+      });
 
       router.replace('/(tabs)');
     } catch (e) {
       console.log(e);
-      alert('Sai tài khoản hoặc mật khẩu');
+
+      Toast.show({
+        type: 'error',
+        text1: 'Đăng nhập thất bại',
+        text2: 'Sai email hoặc mật khẩu',
+        position: 'top',
+      });
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Đăng nhập</Text>
+      <View style={styles.card}>
+        {/* ---------- HEADER ---------- */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Đăng nhập</Text>
+          <Text style={styles.subtitle}>
+            Vui lòng đăng nhập để tiếp tục sử dụng dịch vụ
+          </Text>
+        </View>
 
-      <AuthInput placeholder="Email" value={email} onChangeText={setEmail} />
-      <AuthInput
-        placeholder="Mật khẩu"
-        value={password}
-        onChangeText={setPassword}
-        secure
-      />
+        {/* ---------- FORM ---------- */}
+        <View style={styles.form}>
+          <AuthInput
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+          />
 
-      <AuthButton label="Đăng nhập" onPress={handleLogin} />
+          <AuthInput
+            placeholder="Mật khẩu"
+            value={password}
+            onChangeText={setPassword}
+            secure
+          />
 
-      <TouchableOpacity onPress={() => router.push('/forgot-password')}>
-        <Text style={styles.forgot}>Quên mật khẩu?</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.forgotWrapper}
+            onPress={() => router.push('/forgot-password')}
+          >
+            <Text style={styles.forgot}>Quên mật khẩu?</Text>
+          </TouchableOpacity>
 
-      <View style={styles.row}>
-        <Text style={styles.text}>Chưa có tài khoản?</Text>
-        <TouchableOpacity onPress={() => router.push('/register')}>
-          <Text style={styles.link}> Đăng ký</Text>
-        </TouchableOpacity>
+          <AuthButton
+            label={isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            onPress={handleLogin}
+            disabled={isLoading}
+          />
+        </View>
+
+        {/* ---------- FOOTER ---------- */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Chưa có tài khoản?</Text>
+          <TouchableOpacity onPress={() => router.push('/register')}>
+            <Text style={styles.footerLink}> Đăng ký</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* ---------- TOAST ---------- */}
+      <Toast config={toastConfig} />
     </View>
   );
 }
 
+/* ======================= CONSTANTS ======================= */
+const ACCENT = '#EF4444';
+const TEXT_PRIMARY = '#111827';
+const TEXT_SECONDARY = '#6B7280';
+const BORDER = '#E5E7EB';
+const BG = '#F9FAFB';
+const SUCCESS = '#16A34A';
+
+/* ======================= STYLE ======================= */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    backgroundColor: BG,
     justifyContent: 'center',
-    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
   },
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 22,
+    paddingVertical: 28,
+    borderWidth: 1,
+    borderColor: BORDER,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+
+  header: {
+    alignItems: 'center',
+    marginBottom: 26,
+  },
+
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#009BA1',
-    marginBottom: 24,
+    color: TEXT_PRIMARY,
+    marginBottom: 6,
+  },
+
+  subtitle: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
     textAlign: 'center',
+    lineHeight: 20,
   },
+
+  form: {
+    gap: 14,
+  },
+
+  forgotWrapper: {
+    alignItems: 'flex-end',
+    marginTop: 4,
+  },
+
   forgot: {
-    color: '#009BA1',
-    marginTop: 14,
-    textAlign: 'right',
+    fontSize: 13,
+    fontWeight: '600',
+    color: ACCENT,
   },
-  row: {
+
+  footer: {
+    marginTop: 28,
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 16,
+    alignItems: 'center',
   },
-  text: {
-    color: '#6B7280',
+
+  footerText: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
   },
-  link: {
-    color: '#009BA1',
-    fontWeight: '600',
+
+  footerLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: ACCENT,
+  },
+
+  /* ---------- TOAST ---------- */
+  toastSuccess: {
+    borderLeftColor: SUCCESS,
+    borderLeftWidth: 5,
+    backgroundColor: '#FFFFFF',
+  },
+
+  toastError: {
+    borderLeftColor: ACCENT,
+    borderLeftWidth: 5,
+    backgroundColor: '#FFFFFF',
+  },
+
+  toastContent: {
+    paddingHorizontal: 12,
+  },
+
+  toastTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+
+  toastMessage: {
+    fontSize: 13,
+    color: TEXT_SECONDARY,
   },
 });
