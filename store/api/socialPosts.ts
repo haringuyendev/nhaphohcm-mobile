@@ -1,4 +1,5 @@
-import { baseApi } from './index';
+import { generatePayloadQuery } from "@/utils";
+import { baseApi } from "./index";
 
 export const socialPostsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -6,12 +7,27 @@ export const socialPostsApi = baseApi.injectEndpoints({
     getMyFeed: builder.query<any, any>({
       query: ({ limit = 10, page = 1 }) =>
         `/api/socialPosts/my-feed?limit=${limit}&page=${page}`,
-      providesTags: ['SocialPosts'],
+      providesTags: ["SocialPosts"],
     }),
     getTrending: builder.query<any, any>({
       query: ({ limit = 10, page = 1 }) =>
         `/api/socialPosts/trending?limit=${limit}&page=${page}`,
-      providesTags: ['SocialPosts'],
+      providesTags: ["SocialPosts"],
+    }),
+    getPostLikes: builder.query<any, any>({
+      query: (params = {}) => {
+        const where = {
+          user: {
+            equals: params.userId
+          }
+        };
+
+        return generatePayloadQuery({
+          path: "/api/postLikes",
+          where,
+        });
+      },
+      providesTags: ["PostLikes"],
     }),
     toggleLike: builder.mutation<
       { success: boolean; liked: boolean; likeCount: number },
@@ -19,16 +35,16 @@ export const socialPostsApi = baseApi.injectEndpoints({
     >({
       query: (postId) => ({
         url: `/api/postLikes/toggle`, // ← Đúng endpoint
-        method: 'POST',
+        method: "POST",
         body: { post: postId },
       }),
-      invalidatesTags: ['SocialPosts'],
+      invalidatesTags: ["SocialPosts", "PostLikes"],
     }),
 
     getComments: builder.query<any, any>({
       query: (postId, limit = 10, page = 1) =>
         `/api/comments/post/${postId}?limit=${limit}&page=${page}`,
-      providesTags: ['Comments'],
+      providesTags: ["Comments"],
     }),
 
     // Thêm comment mới cho bài viết
@@ -38,13 +54,13 @@ export const socialPostsApi = baseApi.injectEndpoints({
     >({
       query: ({ postId, text }) => ({
         url: `/api/comments/add`,
-        method: 'POST',
+        method: "POST",
         body: {
           post: postId,
           text,
         },
       }),
-      invalidatesTags: ['Comments'],
+      invalidatesTags: ["Comments"],
     }),
 
     // Trả lời một comment (reply)
@@ -54,13 +70,13 @@ export const socialPostsApi = baseApi.injectEndpoints({
     >({
       query: ({ parentCommentId, text }) => ({
         url: `/api/comments/reply`,
-        method: 'POST',
+        method: "POST",
         body: {
           parentComment: parentCommentId,
           text,
         },
       }),
-      invalidatesTags: ['Comments'],
+      invalidatesTags: ["Comments"],
     }),
   }),
 });
@@ -68,6 +84,7 @@ export const socialPostsApi = baseApi.injectEndpoints({
 export const {
   useGetMyFeedQuery,
   useGetTrendingQuery,
+  useGetPostLikesQuery,
   useToggleLikeMutation,
   useGetCommentsQuery,
   useAddCommentMutation,

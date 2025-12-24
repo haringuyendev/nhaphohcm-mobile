@@ -1,33 +1,35 @@
-import { Property, User } from '@/types';
-import qs from 'qs';
+import { Property, User } from "@/types";
+import qs from "qs";
 
 export const formatPrice = (price: number): string => {
   const formatter = new Intl.NumberFormat("vi-VN", {
-    maximumFractionDigits: 2,   // Tối đa 2 chữ số thập phân
-    minimumFractionDigits: 0,   // Không bắt buộc có thập phân
+    maximumFractionDigits: 2, // Tối đa 2 chữ số thập phân
+    minimumFractionDigits: 0, // Không bắt buộc có thập phân
   });
 
   if (price >= 1_000_000_000) {
     const billions = price / 1_000_000_000;
     // Nếu là số nguyên tỷ → không hiện .0
-    const formatted = billions % 1 === 0 
-      ? formatter.format(billions).replace(/,\d+$/, "") 
-      : formatter.format(billions);
+    const formatted =
+      billions % 1 === 0
+        ? formatter.format(billions).replace(/,\d+$/, "")
+        : formatter.format(billions);
     return `${formatted} tỷ`;
   } else {
     const millions = price / 1_000_000;
-    const formatted = millions % 1 === 0 
-      ? formatter.format(millions).replace(/,\d+$/, "") 
-      : formatter.format(millions);
+    const formatted =
+      millions % 1 === 0
+        ? formatter.format(millions).replace(/,\d+$/, "")
+        : formatter.format(millions);
     return `${formatted} triệu`;
   }
 };
 
 const toArray = (value: string | string[] | undefined): string[] => {
   if (Array.isArray(value)) return value;
-  if (typeof value === 'string')
+  if (typeof value === "string")
     return value
-      .split(',')
+      .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
   return [];
@@ -36,30 +38,30 @@ const toArray = (value: string | string[] | undefined): string[] => {
 const toSlug = (value: string) => {
   return value
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đĐ]/g, 'd')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 };
 
 export const removeVietnameseTones = (str: string): string => {
-  if (!str) return '';
+  if (!str) return "";
   return str
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
     .trim();
 };
 
 export function buildWhereFromParams(params: any) {
   const searchConditions: any[] = [];
 
-  const searchRaw = (params.search || params.q)?.toString().trim() || '';
-  const cleanQuery = searchRaw ? removeVietnameseTones(searchRaw) : '';
-  const slugQuery = searchRaw ? toSlug(searchRaw) : '';
+  const searchRaw = (params.search || params.q)?.toString().trim() || "";
+  const cleanQuery = searchRaw ? removeVietnameseTones(searchRaw) : "";
+  const slugQuery = searchRaw ? toSlug(searchRaw) : "";
 
   if (searchRaw && cleanQuery) {
     const words = cleanQuery.split(/\s+/).filter((w) => w.length >= 2);
@@ -82,10 +84,10 @@ export function buildWhereFromParams(params: any) {
 
     // district / ward
     searchConditions.push(
-      { 'district.name': { contains: searchRaw } },
-      { 'district.name': { contains: cleanQuery } },
-      { 'ward.name': { contains: searchRaw } },
-      { 'ward.name': { contains: cleanQuery } }
+      { "district.name": { contains: searchRaw } },
+      { "district.name": { contains: cleanQuery } },
+      { "ward.name": { contains: searchRaw } },
+      { "ward.name": { contains: cleanQuery } }
     );
 
     // slug
@@ -110,11 +112,11 @@ export function buildWhereFromParams(params: any) {
       ...(params.is_vip ? [{ is_vip: { equals: params.is_vip } }] : []),
       ...(params.seller ? [{ seller: { equals: params.seller } }] : []),
       ...(searchConditions.length ? [{ or: searchConditions }] : []),
-      ...(params.type ? [{ 'type.value': { equals: params.type } }] : []),
+      ...(params.type ? [{ "type.value": { equals: params.type } }] : []),
       ...(params.district
-        ? [{ 'district.code': { equals: params.district } }]
+        ? [{ "district.code": { equals: params.district } }]
         : []),
-      ...(params.ward ? [{ 'ward.code': { equals: params.ward } }] : []),
+      ...(params.ward ? [{ "ward.code": { equals: params.ward } }] : []),
       ...(priceMin !== undefined
         ? [{ price: { greater_than_equal: priceMin } }]
         : []),
@@ -135,7 +137,7 @@ export function buildWhereFromParams(params: any) {
 
 export function buildWhereFromStatus(params: {
   userId: string;
-  status?: 'published' | 'unpublished' | 'deleted' | 'expired' | 'expiring';
+  status?: "published" | "unpublished" | "deleted" | "expired" | "expiring";
   search?: string;
 }) {
   const now = new Date().toISOString();
@@ -150,7 +152,7 @@ export function buildWhereFromStatus(params: {
     const conditions: any[] = [];
 
     switch (params.status) {
-      case 'published':
+      case "published":
         conditions.push(
           { is_published: { equals: true } },
           { is_hidden: { equals: false } },
@@ -163,21 +165,19 @@ export function buildWhereFromStatus(params: {
         );
         break;
 
-      case 'unpublished':
-        conditions.push(
-          { is_published: { equals: false } },
-        );
+      case "unpublished":
+        conditions.push({ is_published: { equals: false } });
         break;
 
-      case 'deleted':
+      case "deleted":
         conditions.push({ is_hidden: { equals: true } });
         break;
 
-      case 'expired':
+      case "expired":
         conditions.push({ expire_at: { less_than: now } });
         break;
 
-      case 'expiring':
+      case "expiring":
         conditions.push(
           { expire_at: { greater_than_equal: now } },
           { expire_at: { less_than_equal: fiveDaysLater } }
@@ -193,9 +193,9 @@ export function buildWhereFromStatus(params: {
     const s = params.search.trim();
     const searchConditions = {
       or: [
-        { title: { contains: s, mode: 'insensitive' } },
-        { address: { contains: s, mode: 'insensitive' } },
-        { description: { contains: s, mode: 'insensitive' } },
+        { title: { contains: s, mode: "insensitive" } },
+        { address: { contains: s, mode: "insensitive" } },
+        { description: { contains: s, mode: "insensitive" } },
       ],
     };
     where = { and: [where, searchConditions] };
@@ -219,50 +219,50 @@ export function encodePayloadWhere(where: any) {
 }
 
 export const getImageUrl = (img?: any): string => {
-  if (!img) return '';
+  if (!img) return "";
 
   // case: image: "abc123"
-  if (typeof img === 'string') {
+  if (typeof img === "string") {
     return `${process.env.EXPO_PUBLIC_API_URL}/api/media/file/${img}`;
   }
 
   // case: image: { url: "/api/media/file/xxx.jpg" }
-  if (typeof img === 'object' && img.url) {
+  if (typeof img === "object" && img.url) {
     return `${process.env.EXPO_PUBLIC_API_URL}${img.url}`;
   }
 
-  return '';
+  return "";
 };
 
 export const getSellerAvatar = (seller: string | User) => {
-  if (!seller || typeof seller === 'string') return '';
+  if (!seller || typeof seller === "string") return "";
 
   const avatar = seller.avatar as any;
 
-  if (!avatar) return '';
-  if (typeof avatar === 'string')
+  if (!avatar) return "";
+  if (typeof avatar === "string")
     return `${process.env.EXPO_PUBLIC_API_URL}/api/media/file/${avatar}`;
 
   if (avatar.url) return `${process.env.EXPO_PUBLIC_API_URL}${avatar.url}`;
 
-  return '';
+  return "";
 };
 
 export const getSellerName = (seller: string | User) => {
-  if (!seller) return 'Người đăng';
-  if (typeof seller === 'string') return 'Người đăng';
-  return seller.name ?? 'Người đăng';
+  if (!seller) return "Người đăng";
+  if (typeof seller === "string") return "Người đăng";
+  return seller.name ?? "Người đăng";
 };
 
 export const getFullAddress = (property: Property) => {
   const province =
-    typeof property.province === 'string' ? '' : property.province?.name;
+    typeof property.province === "string" ? "" : property.province?.name;
   const district =
-    typeof property.district === 'string' ? '' : property.district?.name;
-  const ward = typeof property.ward === 'string' ? '' : property.ward?.name;
+    typeof property.district === "string" ? "" : property.district?.name;
+  const ward = typeof property.ward === "string" ? "" : property.ward?.name;
 
-  return `${ward ? ward + ', ' : ''}${district ? district + ', ' : ''}${
-    province || ''
+  return `${ward ? ward + ", " : ""}${district ? district + ", " : ""}${
+    province || ""
   }`;
 };
 
@@ -271,7 +271,7 @@ export const getFullAddress = (property: Property) => {
 // --------------------------
 export const resolveImageUrl = (relative?: string | null | undefined) => {
   if (!relative) return null;
-  if (relative.startsWith('http')) return relative;
+  if (relative.startsWith("http")) return relative;
   return `${process.env.EXPO_PUBLIC_API_URL}${relative}`;
 };
 
@@ -310,3 +310,17 @@ export function generatePayloadQuery({
 
   return `${path}?${queryString}`;
 }
+export const getTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInMinutes < 1) return "Vừa xong";
+  if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+  if (diffInHours < 24) return `${diffInHours} giờ trước`;
+  if (diffInDays < 7) return `${diffInDays} ngày trước`;
+  return date.toLocaleDateString("vi-VN");
+};

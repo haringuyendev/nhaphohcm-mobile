@@ -1,7 +1,7 @@
 // components/community/PostCard.tsx
 import { Image } from 'expo-image';
 import { Heart, MessageCircle, Send, Share2, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,11 +17,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { useApp } from '@/hooks/use-app';
 import {
   useAddCommentMutation,
-  useGetCommentsQuery,
   useReplyCommentMutation,
   useToggleLikeMutation,
 } from '@/store/api/socialPosts';
@@ -29,6 +26,9 @@ import { Comment } from '@/store/payload-types';
 import { Community, Media, SocialPost } from '@/types/community';
 import { getImageUrl } from '@/utils'; // ← DÙNG HÀM CHUNG
 import { renderLexicalNode } from '@/utils/lexical'; // giả sử bạn có hàm này
+import { useUser } from '@/hooks/use-user';
+import { MESSAGE_TYPES, useWebSocket } from '@/hooks/use-websocket';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
 
 interface PostCardProps {
   post: SocialPost;
@@ -37,8 +37,7 @@ interface PostCardProps {
 
 export function PostCard({ post, community }: PostCardProps) {
   const insets = useSafeAreaInsets();
-  const { togglePostLike, incrementShareCount } = useApp();
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [localPost, setLocalPost] = useState(post);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [replyingTo, setReplyingTo] = useState<{
@@ -46,33 +45,106 @@ export function PostCard({ post, community }: PostCardProps) {
     authorName: string;
   } | null>(null);
 
+  const scrollViewRef = useRef<ScrollView>(null);
+
   const [toggleLike] = useToggleLikeMutation();
   const [addComment, { isLoading: isAddingComment }] = useAddCommentMutation();
   const [replyComment, { isLoading: isReplyingComment }] =
     useReplyCommentMutation();
-  const { data: commentsResponse, isLoading: isCommentsLoading } =
-    useGetCommentsQuery(post.id, { skip: !isCommentModalOpen });
-  const allComments = commentsResponse?.docs || [];
 
-  // Filter root comments (no parentComment) and group replies
-  const rootComments = allComments.filter(
-    (comment: any) => comment.parentComment === null
-  );
+  const { user: me, postLikes } = useUser();
+  const allLikes = postLikes?.map((p: any) => p.post.id)
+  // Update localPost khi prop thay đổi
+  useEffect(() => {
+    setLocalPost(post);
+  }, [post]);
+
+  const handleWS = useCallback((event: string, payload: any) => {
+    if (event !== MESSAGE_TYPES.COLLECTION_CHANGED) return;
+    console.log(payload)
+
+    const { collection, operation, doc } = payload;
+
+    // 1. Cập nhật likeCount / commentCount từ socialPosts
+    if (collection === 'socialPosts') {
+      setLocalPost(prev => ({
+        ...prev,
+        likeCount: doc.likeCount ?? prev.likeCount,
+        commentCount: doc.commentCount ?? prev.commentCount,
+      }));
+
+      // Thông báo khi có người thích bài của mình
+      if (me && doc.author === me.id) {
+        Toast.show({
+          type: 'realEstateSuccess',
+          text1: 'Có người vừa thích bài viết của bạn!',
+          text2: localPost.title,
+        });
+      }
+    }
+
+    if (collection === 'comments') {
+      if (operation === 'create') {
+        if (me && doc.author?.id === me.id) {
+          Toast.show({
+            type: 'realEstateSuccess',
+            text1: `${doc.author?.name || 'Ai đó'} vừa bình luận bài viết của bạn`,
+            text2: `"${doc.text}"`,
+            position: 'top',
+            visibilityTime: 4000,
+          });
+        }
+
+        setLocalPost(prev => ({
+          ...prev,
+          commentCount: (prev.commentCount ?? 0) + 1,
+        }));
+      }
+    }
+  }, [me, localPost.title]);
+
+  const { fetchCollection, data } = useWebSocket(handleWS);
+
+  useEffect(() => {
+    if (isCommentModalOpen) {
+      fetchCollection('comments', {
+        limit: 200,
+        sort: 'createdAt',
+        where: { post: { equals: localPost.id } },
+        depth: 2,
+      });
+    }
+  }, [isCommentModalOpen, localPost.id, fetchCollection, me?.id]);
+
+  // Sync data.comments từ WebSocket vào local (để render danh sách comment)
+  const comments = data?.comments || [];
+
+  // Filter root comments và lấy replies
+  const rootComments = comments
+    .filter((comment: any) => comment.parentComment === null &&
+      (typeof comment.post === 'string' ? comment.post : comment.post?.id) === localPost.id)
+    .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
   const getReplies = (parentId: string) =>
-    allComments.filter(
-      (comment: any) =>
-        comment.parentComment?.id === parentId ||
-        comment.parentComment === parentId
-    );
+    comments
+      .filter((comment: any) =>
+        comment.parentComment?.id === parentId || comment.parentComment === parentId
+      )
+      .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
+  useEffect(() => {
+    if (rootComments.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 300);
+    }
+  }, [rootComments.length]);
   const handleLike = async () => {
-    setIsAnimating(true);
     try {
       await toggleLike(post.id);
     } catch (error) {
       console.error('Error toggling like:', error);
     }
-    setTimeout(() => setIsAnimating(false), 600);
   };
 
   const handleOpenComment = () => {
@@ -122,7 +194,6 @@ export function PostCard({ post, community }: PostCardProps) {
       });
 
       if (result.action === RNShare.sharedAction) {
-        await incrementShareCount(post.id);
         Alert.alert('Thành công', 'Đã chia sẻ bài viết');
       }
     } catch (error) {
@@ -178,8 +249,8 @@ export function PostCard({ post, community }: PostCardProps) {
           <Text style={styles.postMeta}>
             {community
               ? `${post.author?.name || 'Thành viên'} · ${getTimeAgo(
-                  post.createdAt
-                )}`
+                post.createdAt
+              )}`
               : getTimeAgo(post.createdAt)}
           </Text>
         </View>
@@ -244,10 +315,10 @@ export function PostCard({ post, community }: PostCardProps) {
         <TouchableOpacity style={styles.action} onPress={handleLike}>
           <Heart
             size={22}
-            color={post.isLiked ? '#EF4444' : '#6B7280'}
-            fill={post.isLiked ? '#EF4444' : 'transparent'}
+            color={allLikes?.includes(post?.id) ? '#EF4444' : '#6B7280'}
+            fill={allLikes?.includes(post?.id) ? '#EF4444' : 'transparent'}
           />
-          <Text style={[styles.actionText, post.isLiked && styles.likedText]}>
+          <Text style={[styles.actionText, allLikes?.includes(post?.id) && styles.likedText]}>
             Thích
           </Text>
         </TouchableOpacity>
@@ -296,25 +367,14 @@ export function PostCard({ post, community }: PostCardProps) {
             <ScrollView
               style={styles.commentsList}
               showsVerticalScrollIndicator={false}
+              ref={scrollViewRef} // thêm ref nếu muốn auto scroll
             >
-              {isCommentsLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#3B82F6" />
-                  <Text style={styles.loadingText}>Đang tải bình luận...</Text>
-                </View>
-              ) : rootComments && rootComments.length > 0 ? (
-                rootComments.map((comment: any, index: number) => {
-                  const replies = getReplies(comment.id).sort(
-                    (a: Comment, b: Comment) => {
-                      return (
-                        new Date(a.createdAt).getTime() -
-                        new Date(b.createdAt).getTime()
-                      );
-                    }
-                  );
+              {rootComments.length > 0 ? (
+                rootComments.map((comment: any) => {
+                  const replies = getReplies(comment.id);
 
                   return (
-                    <View key={comment.id || index}>
+                    <View key={comment.id}>
                       {/* Parent Comment */}
                       <View style={styles.commentItem}>
                         <Image
@@ -348,46 +408,38 @@ export function PostCard({ post, community }: PostCardProps) {
                       </View>
 
                       {/* Replies */}
-                      {replies.length > 0 &&
-                        replies.map((reply: any, replyIndex: number) => (
-                          <View
-                            key={reply.id || replyIndex}
-                            style={styles.replyItem}
-                          >
-                            <Image
-                              source={{
-                                uri: getImageUrl(reply.author?.avatar as Media),
-                              }}
-                              style={styles.replyAvatar}
-                              placeholder="LEHV6nWB2yk8pyo0adR*.7kCMdnj"
-                            />
-                            <View style={styles.commentContent}>
-                              <Text style={styles.commentAuthor}>
-                                {reply.author?.name ?? 'Người dùng'}
+                      {replies.map((reply: any) => (
+                        <View key={reply.id} style={styles.replyItem}>
+                          <Image
+                            source={{
+                              uri: getImageUrl(reply.author?.avatar as Media),
+                            }}
+                            style={styles.replyAvatar}
+                            placeholder="LEHV6nWB2yk8pyo0adR*.7kCMdnj"
+                          />
+                          <View style={styles.commentContent}>
+                            <Text style={styles.commentAuthor}>
+                              {reply.author?.name ?? 'Người dùng'}
+                            </Text>
+                            <Text style={styles.commentText}>{reply.text}</Text>
+                            <View style={styles.commentActions}>
+                              <Text style={styles.commentTime}>
+                                {getTimeAgo(reply.createdAt)}
                               </Text>
-                              <Text style={styles.commentText}>
-                                {reply.text}
-                              </Text>
-                              <View style={styles.commentActions}>
-                                <Text style={styles.commentTime}>
-                                  {getTimeAgo(reply.createdAt)}
-                                </Text>
-                                <TouchableOpacity
-                                  onPress={() =>
-                                    handleReplyComment(
-                                      comment.id,
-                                      reply.author?.name ?? 'Người dùng'
-                                    )
-                                  }
-                                >
-                                  <Text style={styles.replyButton}>
-                                    Trả lời
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
+                              <TouchableOpacity
+                                onPress={() =>
+                                  handleReplyComment(
+                                    comment.id,
+                                    reply.author?.name ?? 'Người dùng'
+                                  )
+                                }
+                              >
+                                <Text style={styles.replyButton}>Trả lời</Text>
+                              </TouchableOpacity>
                             </View>
                           </View>
-                        ))}
+                        </View>
+                      ))}
                     </View>
                   );
                 })
@@ -437,7 +489,7 @@ export function PostCard({ post, community }: PostCardProps) {
                     (!commentText.trim() ||
                       isAddingComment ||
                       isReplyingComment) &&
-                      styles.sendButtonDisabled,
+                    styles.sendButtonDisabled,
                   ]}
                   onPress={handleSubmitComment}
                   disabled={

@@ -1,5 +1,6 @@
 import { useMeQuery } from "@/store/api/auth";
 import { useGetWishlistPropertiesQuery } from "@/store/api/properties";
+import { useGetPostLikesQuery } from "@/store/api/socialPosts";
 import { useToggleFavoriteMutation, useGetMyPropertyStatsQuery } from "@/store/api/user";
 import { User } from "@/types";
 import { useEffect, useMemo, useState } from "react";
@@ -12,6 +13,7 @@ export function useUser() {
   const favoritePropertiesId=useMemo(()=>{
     return data?.user?.favoriteProperties?.map((p:any)=>p.id) ?? []; 
   },[data])
+  const {data:postLikes}=useGetPostLikesQuery({userId:data?.user?.id}, {skip:!data?.user?.id})
 
   const stats = useMemo(() => {
     if (!statsData) {
@@ -53,5 +55,6 @@ export function useUser() {
     statsLoading,
     stats,
     favoriteLoading,
+    postLikes:postLikes?.docs ?? []
   };
 }

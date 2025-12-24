@@ -1,4 +1,4 @@
-import { PostCard } from '@/components/PostCard';
+import { PostCard } from '@/components/community/PostCard';
 import { useApp } from '@/hooks/use-app';
 import { useGetCommunityByIdQuery } from '@/store/api/community';
 import { useGetMyFeedQuery } from '@/store/api/socialPosts';
