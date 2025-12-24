@@ -10,6 +10,7 @@ import { useCreatePropertyMutation } from '@/store/api/properties';
 import { District, Province, Ward } from '@/types';
 import { Direction, PropertyImage, TransactionType } from '@/types/property';
 import { markdownToLexical } from '@/utils/lexical_converter';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import { ChevronDown, Upload, X } from 'lucide-react-native';
@@ -490,7 +491,7 @@ export default function PostScreen() {
           <View style={styles.grid}>
             {images.map((img, index) => (
               <View key={img.id} style={styles.gridItem}>
-                <RNImage source={{ uri: img.uri }} style={styles.img} />
+                <Image source={{ uri: img.uri??'' }} style={styles.img} />
 
                 {index === 0 && (
                   <View style={styles.badge}>

@@ -9,8 +9,8 @@ import {
     Alert,
     Modal,
     FlatList,
-    Image as RNImage,
-    Dimensions
+    Dimensions,
+    ActivityIndicator
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -23,18 +23,20 @@ import { useCreateMediaMutation } from '@/store/api/media';
 import { useUser } from '@/hooks/use-user';
 import { District, Property, Province, Ward } from '@/types';
 import { lexicalToMarkdown, markdownToLexical } from '@/utils/lexical_converter';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
+import { Image } from 'expo-image';
+import { resolveImageUrl } from '@/utils';
 
 const STEPS = ['Loại BĐS', 'Địa chỉ', 'Thông tin', 'Hình ảnh', 'Hoàn tất'];
 
 export default function PostScreen() {
     const { id } = useLocalSearchParams();
-    console.log(id);
     const router = useRouter();
     const { user } = useUser();
 
     // API mutations
-    const [updateProperty] = useUpdatePropertyMutation();
-    const [createMedia] = useCreateMediaMutation();
+    const [updateProperty, { isLoading: updating }] = useUpdatePropertyMutation();
+    const [createMedia, { isLoading: creatingMedia }] = useCreateMediaMutation();
 
     // Fetch property nếu đang edit
     const { data: propertyData, isLoading: propertyLoading } = useGetPropertyByIdQuery(id as string, {
@@ -67,8 +69,6 @@ export default function PostScreen() {
 
     const [title, setTitle] = useState('');
     const [markdownDescription, setMarkdownDescription] = useState('');
-    const [contactName, setContactName] = useState('');
-    const [contactPhone, setContactPhone] = useState('');
 
     const [images, setImages] = useState<PropertyImage[]>([]); // local + uploaded
 
@@ -89,11 +89,9 @@ export default function PostScreen() {
         { districtCode: district?.code },
         { skip: !district }
     );
-    console.log(markdownDescription);
     // Load data khi edit
     useEffect(() => {
         if (id && property && !propertyLoading) {
-            console.log(property);
             // Basic info
             setTitle(property.title || '');
             setPropertyType((property.type as any).id || '');
@@ -108,7 +106,6 @@ export default function PostScreen() {
             } else {
                 setMarkdownDescription('');
             }
-            console.log(property.description)
             // Address
             setProvince((property.province as any) || null);
             setDistrict((property.district as any) || null);
@@ -124,7 +121,8 @@ export default function PostScreen() {
                 setImages(
                     property.images.map((img: any) => ({
                         id: img.image.id,
-                        uri: img.image.url,
+                        uri: resolveImageUrl(img.image.url),
+                        blurhash: img.image.blurhash,
                     }))
                 );
             }
@@ -228,7 +226,6 @@ export default function PostScreen() {
 
             const priceVal = parseFloat(price) * (priceUnit === 'billion' ? 1e9 : 1e6);
             const descriptionLexicalJson = markdownToLexical(markdownDescription);
-            console.log(markdownDescription, descriptionLexicalJson);
             const data: Partial<Property> = {
                 title,
                 type: propertyType,
@@ -247,12 +244,19 @@ export default function PostScreen() {
             };
 
             await updateProperty({ id: id as string, data }).unwrap();
-            Alert.alert('Thành công', 'Tin đăng đã được cập nhật!', [
-                { text: 'OK', onPress: () => router.back() },
-            ]);
+            Toast.show({
+                type: 'realEstateError',
+                text1: 'Cập nhật tin đăng thành công!',
+                text2: property?.title,
+            });
+            router.back();
         } catch (err) {
             console.error(err);
-            Alert.alert('Lỗi', 'Không thể lưu tin đăng. Vui lòng thử lại.');
+            Toast.show({
+                type: 'realEstateError',
+                text1: 'Lỗi',
+                text2: 'Không thể lưu tin đăng. Vui lòng thử lại.',
+            });
         }
     };
 
@@ -296,21 +300,25 @@ export default function PostScreen() {
                 <Text style={[styles.title, { marginTop: 20 }]}>Loại BĐS</Text>
 
                 <View style={{ gap: 10 }}>
-                    {propertyTypes.map(item => (
-                        <TouchableOpacity
-                            key={item.id}
-                            style={[
-                                styles.cardOption,
-                                propertyType === item.id && styles.cardOptionActive
-                            ]}
-                            onPress={() => setPropertyType(item.id)}
-                        >
-                            <Text style={[
-                                styles.cardOptionText,
-                                propertyType === item.id && styles.cardOptionTextActive
-                            ]}>{item.label || item.value}</Text> {/* Assume 'name' field */}
-                        </TouchableOpacity>
-                    ))}
+                    {propertyTypes
+                        .filter(item => item && (item.label || item.value)) // lọc bỏ item rỗng
+                        .map(item => (
+                            <TouchableOpacity
+                                key={item.id}
+                                style={[
+                                    styles.cardOption,
+                                    propertyType === item.id && styles.cardOptionActive
+                                ]}
+                                onPress={() => setPropertyType(item.id)}
+                            >
+                                <Text style={[
+                                    styles.cardOptionText,
+                                    propertyType === item.id && styles.cardOptionTextActive
+                                ]}>
+                                    {String(item.label || item.value || 'Không có tên')}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
                 </View>
             </View>
         );
@@ -471,7 +479,13 @@ export default function PostScreen() {
                 <View style={styles.grid}>
                     {images.map((img, index) => (
                         <View key={img.id} style={styles.gridItem}>
-                            <RNImage source={{ uri: img.uri }} style={styles.img} />
+                            <Image
+                                source={{ uri: img.uri ?? '' }}
+                                style={styles.img}
+                                contentFit="cover"
+                                placeholder={img.blurhash}
+                                placeholderContentFit="cover"
+                            />
 
                             {index === 0 && (
                                 <View style={styles.badge}>
@@ -553,13 +567,20 @@ export default function PostScreen() {
                     </TouchableOpacity>
                 )}
                 <TouchableOpacity
-                    style={[styles.next, !canNext() && styles.nextDisabled]}
-                    disabled={!canNext()}
+                    style={[
+                        styles.next,
+                        (!canNext() || updating || creatingMedia) && styles.nextDisabled,
+                    ]}
+                    disabled={!canNext() || updating || creatingMedia}
                     onPress={next}
                 >
-                    <Text style={styles.nextText}>
-                        {step === STEPS.length - 1 ? 'Đăng tin' : 'Tiếp theo'}
-                    </Text>
+                    {updating || creatingMedia ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                        <Text style={styles.nextText}>
+                            {step === STEPS.length - 1 ? 'Cập nhật tin' : 'Tiếp theo'}
+                        </Text>
+                    )}
                 </TouchableOpacity>
             </View>
 

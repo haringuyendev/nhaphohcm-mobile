@@ -14,12 +14,6 @@ function isUnderline(format: number) {
 export function renderLexicalNode(node: any, key: number = 0): any {
   if (!node) return null;
 
-  // DEBUG
-  // console.log("node:", node);
-
-  // ------------------------------
-  // ROOT
-  // ------------------------------
   if (node.type === "root") {
     return (
       <View key={key}>

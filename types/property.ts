@@ -13,7 +13,8 @@ export interface Location {
 
 export interface PropertyImage {
   id: string;
-  uri: string;
+  uri: string|null;
+  blurhash?: string;
 }
 
 export interface Property {

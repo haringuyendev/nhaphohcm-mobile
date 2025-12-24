@@ -24,6 +24,7 @@ import {
   BedDouble,
   Calendar,
   DollarSign,
+  Edit,
   Heart,
   MapPin,
   MessageCircle,
@@ -33,7 +34,6 @@ import {
 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Dimensions,
   FlatList,
   Linking,
@@ -92,38 +92,9 @@ export default function PropertyDetailScreen() {
     typeof property?.seller !== 'string' &&
     property?.seller?.id === me.id;
 
-  const [updateProperty, { isLoading, error }] = useUpdatePropertyMutation();
-  const [createMedia] = useCreateMediaMutation();
-
-  const [existingImages, setExistingImages] = useState<any[]>([]);
-  const [newImages, setNewImages] = useState<any[]>([]);
-
-  const [title, setTitle] = useState('');
-  const [price, setPrice] = useState('');
-  const [priceUnit, setPriceUnit] = useState<'million' | 'billion'>('billion');
-  const [area, setArea] = useState('');
-  const [bedrooms, setBedrooms] = useState('');
-  const [bathrooms, setBathrooms] = useState('');
-  const [street, setStreet] = useState('');
-  const [province, setProvince] = useState<any | null>(null);
-  const [district, setDistrict] = useState<any | null>(null);
-  const [ward, setWard] = useState<any | null>(null);
-  const [markdownDescription, setMarkdownDescription] = useState<string>('');
-
   useEffect(() => {
     if (!data) return;
     const p = data as any;
-    setExistingImages(p.images || []);
-    setTitle(p.title || '');
-    setPrice(p.price ? String(p.price / 1e9) : '');
-    setPriceUnit('billion');
-    setArea(p.area ? String(p.area) : '');
-    setBedrooms(p.bedrooms ? String(p.bedrooms) : '');
-    setBathrooms(p.bathrooms ? String(p.bathrooms) : '');
-    setStreet(p.location?.street || '');
-    setProvince(typeof p.province === 'object' ? p.province : null);
-    setDistrict(typeof p.district === 'object' ? p.district : null);
-    setWard(typeof p.ward === 'object' ? p.ward : null);
   }, [data]);
 
   const handleFavorite = async (e: any) => {
@@ -151,87 +122,6 @@ export default function PropertyDetailScreen() {
         text1: 'Thao tác thất bại!',
         text2: 'Vui lòng thử lại.',
       });
-    }
-  };
-
-  const handleUpdate = async () => {
-    try {
-      let updatedImages = existingImages; // ảnh cũ
-
-      // 1️⃣ Upload ảnh mới nếu có
-      if (newImages.length > 0) {
-        const uploadedImages = [];
-
-        for (let index = 0; index < newImages.length; index++) {
-          const img = newImages[index];
-          const formData = new FormData();
-
-          formData.append('file', {
-            uri: img.uri,
-            name: `property_${Date.now()}_${index}.jpg`,
-            type: 'image/jpeg',
-          } as any);
-
-          formData.append(
-            '_payload',
-            JSON.stringify({
-              alt: `Ảnh cập nhật: ${title || 'Tin BĐS'}`,
-            })
-          );
-
-          const mediaRes = await createMedia(formData).unwrap();
-          const mediaId = mediaRes.doc?.id || mediaRes.id;
-
-          uploadedImages.push({ image: mediaId });
-        }
-
-        updatedImages = uploadedImages;
-      }
-
-      // 2️⃣ Build địa chỉ (lấy từ state nếu có, fallback về property)
-      const wardName =
-        ward?.name || (property?.ward && (property.ward as any).name) || '';
-      const districtName =
-        district?.name ||
-        (property?.district && (property.district as any).name) ||
-        '';
-      const provinceName =
-        province?.name ||
-        (property?.province && (property.province as any).name) ||
-        '';
-      const fullAddress = `${
-        street ? street + ', ' : ''
-      }${wardName}, ${districtName}, ${provinceName}`;
-
-      // 3️⃣ Chuẩn bị payload update
-      const updateData: Partial<Property> = {
-        title,
-        price: parseFloat(price) * (priceUnit === 'billion' ? 1e9 : 1e6),
-        area: parseFloat(area),
-        bedrooms: bedrooms ? parseInt(bedrooms) : undefined,
-        bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
-        address: fullAddress,
-        description: markdownDescription
-          ? JSON.parse(markdownToLexical(markdownDescription))
-          : property.description,
-        images: updatedImages,
-        province: province?.id,
-        district: district?.id,
-        ward: ward?.id,
-      };
-
-      // 4️⃣ Call API
-      await updateProperty({
-        id: property.id,
-        data: updateData,
-      }).unwrap();
-
-      Alert.alert('Thành công', 'Tin đăng đã được cập nhật!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Lỗi', 'Không thể cập nhật tin');
     }
   };
 
@@ -270,10 +160,10 @@ export default function PropertyDetailScreen() {
             <View style={styles.headerActions}>
               {isOwner && (
                 <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={handleUpdate}
+                  style={styles.headerButton}
+                  onPress={() => router.push(`/editpost/${property.id}`)}
                 >
-                  <Text style={styles.editButtonText}>Chỉnh sửa</Text>
+                  <Edit size={20} color="#111" />
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={styles.headerButton}>
@@ -490,7 +380,7 @@ const styles = StyleSheet.create({
   errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorText: { color: '#999', fontSize: 16 },
 
-  headerActions: { flexDirection: 'row', gap: 8, marginRight: 16 },
+  headerActions: { flexDirection: 'row', gap: 8 },
   headerButton: {
     width: 36,
     height: 36,

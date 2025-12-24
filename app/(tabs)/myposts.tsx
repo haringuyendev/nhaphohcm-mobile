@@ -151,7 +151,7 @@ export default function MyPostsScreen() {
           <Text style={[styles.actionText, { color: '#F59E0B' }]}>VIP</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={() => {console.log(property.id);router.push(`/editpost/${property.id}`)}}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push(`/editpost/${property.id}`)}>
           <Edit size={18} color="#3B82F6" />
           <Text style={[styles.actionText, { color: '#3B82F6' }]}>Sửa</Text>
         </TouchableOpacity>

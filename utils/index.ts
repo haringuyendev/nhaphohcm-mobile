@@ -56,7 +56,6 @@ export const removeVietnameseTones = (str: string): string => {
 
 export function buildWhereFromParams(params: any) {
   const searchConditions: any[] = [];
-  console.log(params);
 
   const searchRaw = (params.search || params.q)?.toString().trim() || '';
   const cleanQuery = searchRaw ? removeVietnameseTones(searchRaw) : '';

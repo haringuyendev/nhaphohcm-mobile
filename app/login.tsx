@@ -23,7 +23,6 @@ export default function LoginScreen() {
 
       router.replace('/(tabs)');
     } catch (e) {
-      console.log(e);
       alert('Sai tài khoản hoặc mật khẩu');
     }
   };
