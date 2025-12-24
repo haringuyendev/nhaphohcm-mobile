@@ -70,7 +70,6 @@ export function PostCard({ post, community }: PostCardProps) {
             if (collection === 'comments' && operation === 'create') {
                 const commentPostId =
                     typeof doc.post === 'string' ? doc.post : doc.post?.id;
-
                 if (commentPostId === localPost.id) {
                     if (me && doc.author?.id !== me.id) {
                         Toast.show({
@@ -91,7 +90,6 @@ export function PostCard({ post, community }: PostCardProps) {
         },
         [localPost.id, localPost.title, me]
     );
-
     const { fetchCollection, data } = useWebSocket(handleWS);
 
     useEffect(() => {
@@ -107,27 +105,22 @@ export function PostCard({ post, community }: PostCardProps) {
 
     const comments = data?.comments || [];
 
-    const rootComments = comments.filter(
-        (comment: any) =>
+    const rootComments = comments
+        .filter((comment: any) =>
             comment.parentComment === null &&
-            (typeof comment.post === 'string'
-                ? comment.post
-                : comment.post?.id) === localPost.id
-    ).sort(
-        (a: any, b: any) =>
+            (typeof comment.post === 'string' ? comment.post : comment.post?.id) === localPost.id
+        )
+        .sort((a: any, b: any) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+        );
 
     const getReplies = (parentId: string) =>
         comments
-            .filter(
-                (comment: any) =>
-                    comment.parentComment?.id === parentId ||
-                    comment.parentComment === parentId
+            .filter((comment: any) =>
+                comment.parentComment?.id === parentId || comment.parentComment === parentId
             )
-            .sort(
-                (a: any, b: any) =>
-                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            .sort((a: any, b: any) =>
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             );
 
     useEffect(() => {
@@ -170,7 +163,7 @@ export function PostCard({ post, community }: PostCardProps) {
             if (replyingTo) {
                 await replyComment({
                     parentCommentId: replyingTo.id,
-                    text: commentText.trim(),
+                    text: `@${replyingTo.authorName} ${commentText.trim()}`,
                 });
                 setReplyingTo(null);
             } else {

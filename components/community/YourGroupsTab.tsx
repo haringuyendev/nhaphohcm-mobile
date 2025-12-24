@@ -1,5 +1,4 @@
 // components/community/YourGroupsTab.tsx
-import { PostCard } from '@/components/PostCard';
 import { FollowedGroupsSection } from '@/components/community/FollowedGroupsSection';
 import { useGetJoinedCommunitiesQuery } from '@/store/api/community';
 import { useGetMyFeedQuery } from '@/store/api/socialPosts';
@@ -7,6 +6,7 @@ import React, { useCallback } from 'react';
 import { FlatList, View, Text, StyleSheet } from 'react-native';
 import { PostCardSkeleton } from './PostSkeleton';
 import { FollowedGroupsSkeleton } from './CommunitySkeleton';
+import { PostCard } from './PostCard';
 
 export const YourGroupsTab = () => {
     const { data: joined, isLoading: joinedLoading, refetch: joinedRefetch } = useGetJoinedCommunitiesQuery({ limit: 20 });

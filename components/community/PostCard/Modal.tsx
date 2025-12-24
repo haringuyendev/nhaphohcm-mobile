@@ -46,7 +46,6 @@ export function CommentModal({
   scrollViewRef,
 }: CommentModalProps) {
   const insets = useSafeAreaInsets();
-
   return (
     <Modal
       visible={visible}
@@ -82,12 +81,12 @@ export function CommentModal({
             {rootComments.length > 0 ? (
               rootComments.map((comment) => {
                 const replies = getReplies(comment.id);
-
                 return (
                   <View key={comment.id}>
                     {/* Root Comment */}
                     <CommentItem
                       comment={comment}
+                      rootComments={comment}
                       onReply={onReply}
                       getTimeAgo={getTimeAgo}
                     />
@@ -98,6 +97,7 @@ export function CommentModal({
                         key={reply.id}
                         comment={reply}
                         isReply={true}
+                        rootComments={comment}
                         onReply={onReply}
                         getTimeAgo={getTimeAgo}
                       />

@@ -4,6 +4,7 @@ import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { getImageUrl } from '@/utils';
 
 interface CommentItemProps {
+  rootComments: any;
   comment: any;
   isReply?: boolean;
   onReply: (id: string, name: string) => void;
@@ -11,6 +12,7 @@ interface CommentItemProps {
 }
 
 export function CommentItem({
+  rootComments,
   comment,
   isReply = false,
   onReply,
@@ -28,7 +30,7 @@ export function CommentItem({
         <Text style={styles.text}>{comment.text}</Text>
         <View style={styles.actions}>
           <Text style={styles.time}>{getTimeAgo(comment.createdAt)}</Text>
-          <TouchableOpacity onPress={() => onReply(comment.id, comment.author?.name ?? 'Người dùng')}>
+          <TouchableOpacity onPress={() => onReply(rootComments.id, comment.author?.name ?? 'Người dùng')}>
             <Text style={styles.replyBtn}>Trả lời</Text>
           </TouchableOpacity>
         </View>
