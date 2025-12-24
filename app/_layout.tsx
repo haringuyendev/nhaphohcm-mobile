@@ -75,6 +75,10 @@ function RootLayoutNav() {
         name="forgot-password"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="acount"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

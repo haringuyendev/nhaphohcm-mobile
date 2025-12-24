@@ -1,25 +1,25 @@
 // src/features/api/authApi.ts
 
-import { User } from '@/types';
-import { baseApi } from '.';
+import { User } from "@/types";
+import { baseApi } from ".";
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // 1. LOGIN
     login: builder.mutation<any, { email: string; password: string }>({
       query: (body) => ({
-        url: '/api/users/login',
-        method: 'POST',
+        url: "/api/users/login",
+        method: "POST",
         body,
       }),
-      invalidatesTags: ['Auth', 'User'],
+      invalidatesTags: ["Auth", "User"],
     }),
     logout: builder.mutation<any, void>({
       query: () => ({
-        url: '/api/users/logout',
-        method: 'POST',
+        url: "/api/users/logout",
+        method: "POST",
       }),
-      invalidatesTags: ['Auth', 'User'],
+      invalidatesTags: ["Auth", "User"],
     }),
 
     // 2. REGISTER
@@ -28,18 +28,18 @@ export const authApi = baseApi.injectEndpoints({
       { name: string; email: string; password: string; phone: string }
     >({
       query: (body) => ({
-        url: '/api/users',
-        method: 'POST',
+        url: "/api/users",
+        method: "POST",
         body,
       }),
-      invalidatesTags: ['Auth'],
+      invalidatesTags: ["Auth"],
     }),
 
     // 3. FORGOT PASSWORD
     forgotPassword: builder.mutation<any, { email: string }>({
       query: (body) => ({
-        url: '/api/users/forgot-password',
-        method: 'POST',
+        url: "/api/users/forgot-password",
+        method: "POST",
         body,
       }),
     }),
@@ -47,8 +47,8 @@ export const authApi = baseApi.injectEndpoints({
     // 4. RESET PASSWORD
     resetPassword: builder.mutation<any, { token: string; password: string }>({
       query: (body) => ({
-        url: '/api/users/reset-password',
-        method: 'POST',
+        url: "/api/users/reset-password",
+        method: "POST",
         body,
       }),
     }),
@@ -56,20 +56,20 @@ export const authApi = baseApi.injectEndpoints({
     // 5. GET CURRENT USER
     me: builder.query<any, void>({
       query: () => ({
-        url: '/api/users/me',
-        method: 'GET',
+        url: "/api/users/me",
+        method: "GET",
       }),
-      providesTags: ['User'],
+      providesTags: ["User"],
     }),
 
     // 6. UPDATE CURRENT USER
-    updateMe: builder.mutation<User, Partial<User>>({
-      query: (body) => ({
-        url: '/api/users/me',
-        method: 'PATCH',
-        body,
+    updateMe: builder.mutation<User, { id: string; data: Partial<User> }>({
+      query: ({ id, data }) => ({
+        url: `/api/users/${id}`, // Gửi trực tiếp vào ID user
+        method: "PATCH",
+        body: data,
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
   }),
 

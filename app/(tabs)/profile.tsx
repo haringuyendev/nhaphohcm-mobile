@@ -39,7 +39,7 @@ export default function ProfileScreen() {
     {
       icon: User,
       label: 'Thông tin cá nhân',
-      onPress: () => console.log('Profile'),
+      onPress: () => router.push('/acount'),
     },
     {
       icon: Heart,
