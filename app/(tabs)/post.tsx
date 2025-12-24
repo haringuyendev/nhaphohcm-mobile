@@ -16,6 +16,7 @@ import { Stack, useRouter } from 'expo-router';
 import { ChevronDown, Upload, X } from 'lucide-react-native';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   FlatList,
@@ -29,14 +30,15 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
 // Adjust path as needed
 
 const STEPS = ['Loại BĐS', 'Địa chỉ', 'Thông tin', 'Hình ảnh', 'Hoàn tất'];
 
 export default function PostScreen() {
   const router = useRouter();
-  const [createProperty] = useCreatePropertyMutation();
-  const [createMedia] = useCreateMediaMutation();
+  const [createProperty, { isLoading: creatingProperty }] = useCreatePropertyMutation();
+  const [createMedia, { isLoading: creatingMedia }] = useCreateMediaMutation();
 
   const { user } = useUser();
   const [province, setProvince] = useState<Province | null>(null); // ID
@@ -68,6 +70,7 @@ export default function PostScreen() {
     title: '',
     value: '',
   });
+  
 
   const [price, setPrice] = useState('');
   const [priceUnit, setPriceUnit] = useState<'million' | 'billion'>('billion');
@@ -80,9 +83,25 @@ export default function PostScreen() {
   const [images, setImages] = useState<PropertyImage[]>([]);
 
   const [title, setTitle] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
 
+  const resetForm = () => {
+  setTransactionType('sale');
+  setPropertyType('');
+  setProvince(null);
+  setDistrict(null);
+  setWard(null);
+  setStreet('');
+  setPrice('');
+  setPriceUnit('billion');
+  setArea('');
+  setBedrooms('');
+  setBathrooms('');
+  setFloors('');
+  setDirection('east');
+  setImages([]);
+  setTitle('');
+  setMarkdownDescription('');
+};
   const openModal = (field: { title: string; value: string }) => {
     setModalField(field);
 
@@ -142,7 +161,7 @@ export default function PostScreen() {
     if (step === 2) return price && area;
     if (step === 3) return images.length > 0;
     if (step === 4)
-      return title && markdownDescription && contactName && contactPhone;
+      return title && markdownDescription;
     return true;
   };
 
@@ -189,9 +208,8 @@ export default function PostScreen() {
       const provinceName =
         provinces.find((p) => p.id === province?.id)?.name || '';
 
-      const fullAddress = `${
-        street ? street + ', ' : ''
-      }${wardName}, ${districtName}, ${provinceName}`;
+      const fullAddress = `${street ? street + ', ' : ''
+        }${wardName}, ${districtName}, ${provinceName}`;
 
       const priceVal =
         parseFloat(price) * (priceUnit === 'billion' ? 1000000000 : 1000000);
@@ -219,11 +237,19 @@ export default function PostScreen() {
 
       await createProperty(data).unwrap();
 
-      Alert.alert('Thành công', 'Tin đăng của bạn đã được đăng!', [
-        { text: 'OK', onPress: () => router.push('/myposts' as any) },
-      ]);
+      Toast.show({
+        type: 'realEstateSuccess',
+        text1: 'Đăng tin thành công!',
+        text2: title,
+      });
+      router.replace('/myposts');
+      resetForm();
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể đăng tin. Vui lòng thử lại.');
+      Toast.show({
+        type: 'realEstateError',
+        text1: 'Lỗi',
+        text2: 'Không thể đăng tin. Vui lòng thử lại.',
+      });
       console.error(error);
     }
   };
@@ -263,7 +289,7 @@ export default function PostScreen() {
                   style={[
                     styles.cardOptionText,
                     transactionType === item.value &&
-                      styles.cardOptionTextActive,
+                    styles.cardOptionTextActive,
                   ]}
                 >
                   {item.label}
@@ -491,7 +517,7 @@ export default function PostScreen() {
           <View style={styles.grid}>
             {images.map((img, index) => (
               <View key={img.id} style={styles.gridItem}>
-                <Image source={{ uri: img.uri??'' }} style={styles.img} />
+                <Image source={{ uri: img.uri ?? '' }} style={styles.img} />
 
                 {index === 0 && (
                   <View style={styles.badge}>
@@ -534,25 +560,6 @@ export default function PostScreen() {
             onChangeText={setMarkdownDescription}
             placeholderTextColor="#9CA3AF"
           />
-
-          <Text style={styles.label}>Tên liên hệ *</Text>
-          <TextInput
-            style={styles.input}
-            value={contactName}
-            onChangeText={setContactName}
-            placeholder="Họ và tên"
-            placeholderTextColor="#9CA3AF"
-          />
-
-          <Text style={styles.label}>Số điện thoại *</Text>
-          <TextInput
-            style={styles.input}
-            value={contactPhone}
-            onChangeText={setContactPhone}
-            keyboardType="phone-pad"
-            placeholder="0912345678"
-            placeholderTextColor="#9CA3AF"
-          />
         </View>
       );
 
@@ -591,13 +598,20 @@ export default function PostScreen() {
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={[styles.next, !canNext() && styles.nextDisabled]}
-          disabled={!canNext()}
+          style={[
+            styles.next,
+            (!canNext() || creatingProperty || creatingMedia) && styles.nextDisabled,
+          ]}
+          disabled={!canNext() || creatingProperty || creatingMedia}
           onPress={next}
         >
-          <Text style={styles.nextText}>
-            {step === STEPS.length - 1 ? 'Đăng tin' : 'Tiếp theo'}
-          </Text>
+          {creatingProperty || creatingMedia ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <Text style={styles.nextText}>
+              {step === STEPS.length - 1 ? 'Đăng tin' : 'Tiếp theo'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 

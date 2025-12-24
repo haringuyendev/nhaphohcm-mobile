@@ -11,10 +11,11 @@ export function AuthButton({ label, onPress }: any) {
 
 const styles = StyleSheet.create({
   btn: {
-    backgroundColor: "#009BA1",
-    paddingVertical: 14,
+    backgroundColor: "#EF4444",
+    paddingVertical: 16,
     borderRadius: 8,
     marginTop: 8,
+    width: "100%",
   },
   txt: {
     textAlign: "center",

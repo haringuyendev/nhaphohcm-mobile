@@ -1,13 +1,27 @@
 // app/register.tsx
-import { AuthButton } from '@/components/Auth/AuthButton';
-import { AuthInput } from '@/components/Auth/AuthInput';
-import { useLoginMutation, useRegisterMutation } from '@/store/api/auth';
-import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { AuthInput } from '@/components/Auth/AuthInput';
+import { AuthButton } from '@/components/Auth/AuthButton';
+import { ArrowLeft } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { useRegisterMutation } from '@/store/api/auth';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
 
 export default function RegisterScreen() {
+  const router = useRouter();
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -15,90 +29,194 @@ export default function RegisterScreen() {
     password: '',
   });
 
-  const [err, setErr] = useState('');
+  const [error, setError] = useState('');
 
   const [register, { isLoading: isRegisterLoading }] = useRegisterMutation();
-  const [login, { isLoading: isLoginLoading }] = useLoginMutation();
 
-  const router = useRouter();
+  const isLoading = isRegisterLoading;
 
-  const submit = async () => {
+  const handleSubmit = async () => {
+    // Reset error
+    setError('');
+    // Basic validation
+    if (!form.name.trim()) return setError('Vui lòng nhập họ và tên');
+    if (!form.email.trim() && !form.phone.trim()) return setError('Vui lòng nhập email hoặc số điện thoại');
+    if (!form.password.trim()) return setError('Vui lòng nhập mật khẩu');
+    if (form.password.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự');
+
     try {
-      await register(form).unwrap();
-
-      const res = await login({
-        email: form.email,
+      await register({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
         password: form.password,
       }).unwrap();
 
-      // Payload CMS trả token ở res.token
-      await SecureStore.setItemAsync('token', res.token);
-
-      setForm({ name: '', email: '', phone: '', password: '' });
-      router.replace('/(tabs)');
+      Toast.show({
+        type: 'realEstateSuccess',
+        text1: 'Đăng ký thành công!',
+        text2: 'Chào mừng bạn đến với cộng đồng bất động sản!',
+      });
     } catch (err: any) {
-      console.log('Registration failed:', err?.data?.errors);
-      if (err?.data?.errors && err.data.errors.length > 0) {
-        const errors = err.data.errors;
-        errors[0]?.message && setErr(errors[0].message);
-      }
+      console.error('Registration failed:', err);
+      const message =
+        err?.data?.message ||
+        'Đăng ký thất bại. Vui lòng thử lại.';
+      setError(message);
+      Toast.show({
+        type: 'realEstateError',
+        text1: 'Đăng ký thất bại!',
+        text2: message,
+      });
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Đăng ký tài khoản</Text>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Back button */}
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={28} color="#FF6B35" />
+          </TouchableOpacity>
 
-      <AuthInput
-        placeholder="Họ và tên"
-        value={form.name}
-        onChangeText={(t: string) => setForm({ ...form, name: t })}
-        onFocus={() => setErr('')}
-      />
+          {/* Title & Subtitle */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Tạo tài khoản mới</Text>
+            <Text style={styles.subtitle}>
+              Đăng ký để đăng tin, tìm kiếm và quản lý bất động sản dễ dàng hơn
+            </Text>
+          </View>
 
-      <AuthInput
-        placeholder="Email"
-        value={form.email}
-        onChangeText={(t: string) => setForm({ ...form, email: t })}
-        onFocus={() => setErr('')}
-      />
+          {/* Form */}
+          <View style={styles.form}>
+            {/* Họ và tên */}
+            <AuthInput
+              placeholder="Họ và tên"
+              value={form.name}
+              onChangeText={(t: string) => setForm({ ...form, name: t })}
+              autoCapitalize="words"
+            />
 
-      <AuthInput
-        placeholder="Số điện thoại"
-        value={form.phone}
-        onChangeText={(t: string) => setForm({ ...form, phone: t })}
-        onFocus={() => setErr('')}
-      />
+            {/* Email */}
+            <AuthInput
+              placeholder="Email (tùy chọn)"
+              value={form.email}
+              onChangeText={(t: string) => setForm({ ...form, email: t })}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
-      <AuthInput
-        placeholder="Mật khẩu"
-        secure
-        onChangeText={(t: string) => setForm({ ...form, password: t })}
-        onFocus={() => setErr('')}
-      />
+            {/* Số điện thoại */}
+            <AuthInput
+              placeholder="Số điện thoại (tùy chọn)"
+              value={form.phone}
+              onChangeText={(t: string) => setForm({ ...form, phone: t })}
+              keyboardType="phone-pad"
+            />
 
-      {err ? (
-        <Text style={{ color: 'red', marginTop: 12, marginBottom: 12 }}>
-          {err}
-        </Text>
-      ) : null}
+            {/* Mật khẩu */}
+            <AuthInput
+              placeholder="Mật khẩu (tối thiểu 6 ký tự)"
+              value={form.password}
+              onChangeText={(t: string) => setForm({ ...form, password: t })}
+              secure
+            />
 
-      <AuthButton label="Tạo tài khoản" onPress={submit} />
-    </View>
+            {/* Error message */}
+            {error ? (
+              <Text style={styles.errorText}>{error}</Text>
+            ) : null}
+
+            {/* Submit button */}
+            <AuthButton
+              label={isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
+              onPress={handleSubmit}
+              disabled={isLoading}
+              style={styles.submitButton}
+            >
+              {isLoading && <ActivityIndicator color="#FFF" style={{ marginRight: 8 }} />}
+            </AuthButton>
+          </View>
+
+          {/* Login link */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Đã có tài khoản?</Text>
+            <TouchableOpacity onPress={() => router.replace('/login')}>
+              <Text style={styles.loginLink}> Đăng nhập ngay</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    justifyContent: 'center',
+    backgroundColor: '#FFF5F0', // Nền cam nhạt Batdongsan
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+  },
+  backButton: {
+    marginBottom: 32,
+    alignSelf: 'flex-start',
+  },
+  header: {
+    marginBottom: 40,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#009BA1',
-    marginBottom: 24,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#EF4444',
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: 20,
+  },
+  form: {
+    width: '100%',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    textAlign: 'center',
+    marginVertical: 16,
+    fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: '#EF4444',
+    borderRadius: 12,
+    height: 56,
+    marginTop: 24,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 48,
+  },
+  footerText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  loginLink: {
+    fontSize: 16,
+    color: '#EF4444',
+    fontWeight: '700',
+    marginLeft: 6,
   },
 });
