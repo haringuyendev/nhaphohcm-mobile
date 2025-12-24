@@ -6,7 +6,7 @@ import { DiscoverTab } from '@/components/community/DiscoverTab';
 import { ForYouTab } from '@/components/community/ForYouTab';
 import { ManageTab } from '@/components/community/ManageTab';
 import { YourGroupsTab } from '@/components/community/YourGroupsTab';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ export default function CommunityScreen() {
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const router=useRouter()
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
@@ -54,7 +55,8 @@ export default function CommunityScreen() {
           /* TODO */
         }}
         onCreatePost={() => {
-          /* TODO */
+          setCreateModalVisible(false);
+          router.push('/socialPost');
         }}
       />
     </SafeAreaView>

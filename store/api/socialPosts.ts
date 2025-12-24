@@ -1,5 +1,6 @@
 import { generatePayloadQuery } from "@/utils";
 import { baseApi } from "./index";
+import { SocialPost } from "@/types";
 
 export const socialPostsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -18,8 +19,8 @@ export const socialPostsApi = baseApi.injectEndpoints({
       query: (params = {}) => {
         const where = {
           user: {
-            equals: params.userId
-          }
+            equals: params.userId,
+          },
         };
 
         return generatePayloadQuery({
@@ -78,6 +79,15 @@ export const socialPostsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Comments"],
     }),
+
+    createSocialPost: builder.mutation<any, Partial<SocialPost>>({
+      query: (body) => ({
+        url: "/api/socialPosts",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["SocialPosts"],
+    }),
   }),
 });
 
@@ -89,4 +99,5 @@ export const {
   useGetCommentsQuery,
   useAddCommentMutation,
   useReplyCommentMutation,
+  useCreateSocialPostMutation,
 } = socialPostsApi;

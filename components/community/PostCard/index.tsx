@@ -57,35 +57,23 @@ export function PostCard({ post, community }: PostCardProps) {
                     likeCount: doc.likeCount ?? prev.likeCount,
                     commentCount: doc.commentCount ?? prev.commentCount,
                 }));
-
-                if (me && doc.author?.id === me.id) {
-                    Toast.show({
-                        type: 'realEstateSuccess',
-                        text1: 'Có người vừa thích bài viết của bạn!',
-                        text2: localPost.title || 'Bài viết mới',
-                    });
-                }
+            }
+            if (event === 'post:liked') {
+                Toast.show({
+                    type: 'realEstateSuccess',
+                    text1: 'Có người vừa thích bài viết của bạn!',
+                    text2: payload.likerName,
+                });
+                return;
             }
 
-            if (collection === 'comments' && operation === 'create') {
-                const commentPostId =
-                    typeof doc.post === 'string' ? doc.post : doc.post?.id;
-                if (commentPostId === localPost.id) {
-                    if (me && doc.author?.id !== me.id) {
-                        Toast.show({
-                            type: 'realEstateSuccess',
-                            text1: `${doc.author?.name || 'Ai đó'} vừa bình luận`,
-                            text2: `"${doc.text}"`,
-                            position: 'top',
-                            visibilityTime: 4000,
-                        });
-                    }
-
-                    setLocalPost((prev: any) => ({
-                        ...prev,
-                        commentCount: (prev.commentCount ?? 0) + 1,
-                    }));
-                }
+            if (event === 'post:commented') {
+                Toast.show({
+                    type: 'realEstateSuccess',
+                    text1: `${payload.commenterName} vừa bình luận bài viết của bạn`,
+                    text2: payload.commentText,
+                });
+                return;
             }
         },
         [localPost.id, localPost.title, me]
@@ -96,7 +84,6 @@ export function PostCard({ post, community }: PostCardProps) {
         if (isCommentModalOpen) {
             fetchCollection('comments', {
                 limit: 200,
-                sort: 'createdAt',
                 where: { post: { equals: localPost.id } },
                 depth: 2,
             });

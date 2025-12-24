@@ -79,6 +79,11 @@ function RootLayoutNav() {
         name="acount"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="socialPost"
+        options={{ headerShown: false }}
+      />
+      
     </Stack>
   );
 }
