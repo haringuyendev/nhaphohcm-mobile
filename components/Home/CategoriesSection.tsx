@@ -1,17 +1,14 @@
 // components/home/CategoriesSection.tsx
 import { CategoryCard } from '@/components/CategoryCard';
-import { PropertyType } from '@/types';
-import React from 'react';
-import { ScrollView, Text, View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useProperties } from '@/hooks/use-properties';
-
+import { PropertyType } from '@/types';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export const CategoriesSection = () => {
   const router = useRouter();
-    const {
-        propertyTypes,
-      } = useProperties();
+  const { propertyTypes } = useProperties();
   const handleCategoryPress = (category: PropertyType) => {
     router.push({
       pathname: '/search',
