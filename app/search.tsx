@@ -1,6 +1,6 @@
 // app/search.tsx hoặc app/(tabs)/search.tsx
 import FiltersPanel from '@/components/search/FiltersPanel';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { SlidersHorizontal, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
@@ -19,7 +19,10 @@ import { SkeletonCard } from '@/components/Skeleton/PropertySkeleton';
 import { useProperties } from '@/hooks/use-properties';
 
 export default function SearchScreen() {
-  const { is_vip } = useLocalSearchParams<{ is_vip?: string }>(); // Lấy param
+  const { is_vip, propertyType } = useLocalSearchParams<{
+    is_vip?: string;
+    propertyType?: string;
+  }>(); // Lấy param
   const [showFilters, setShowFilters] = useState(false);
 
   const {
@@ -35,17 +38,19 @@ export default function SearchScreen() {
     propertyHasNextPage,
   } = useProperties();
 
-  // Khi URL có ?is_vip=true → tự động áp dụng filter VIP
+  // Khi URL có ?is_vip=true hoặc ?propertyType=... → tự động áp dụng filter
   useEffect(() => {
+    let newFilters = { ...filters };
     if (is_vip === 'true') {
-      applyFilters({ ...filters, is_vip: true });
+      newFilters.is_vip = true;
     } else if (is_vip === 'false') {
-      // Nếu muốn hỗ trợ ?is_vip=false → bỏ filter VIP
-      const newFilters = { ...filters };
       delete newFilters.is_vip;
-      applyFilters(newFilters);
     }
-  }, [is_vip]);
+    if (propertyType) {
+      newFilters.type = propertyType;
+    }
+    applyFilters(newFilters);
+  }, [is_vip, propertyType]);
 
   const renderSkeleton = () => (
     <FlatList
@@ -120,10 +125,13 @@ export default function SearchScreen() {
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.35}
-          
           ListFooterComponent={() =>
             propertyHasNextPage ? (
-              <ActivityIndicator size="small" color="#EF4444" style={{ padding: 20 }} />
+              <ActivityIndicator
+                size="small"
+                color="#EF4444"
+                style={{ padding: 20 }}
+              />
             ) : null
           }
           ListEmptyComponent={
