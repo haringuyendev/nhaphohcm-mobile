@@ -39,13 +39,7 @@ export const socialPostsApi = baseApi.injectEndpoints({
         method: "POST",
         body: { post: postId },
       }),
-      invalidatesTags: ["SocialPosts", "PostLikes"],
-    }),
-
-    getComments: builder.query<any, any>({
-      query: (postId, limit = 10, page = 1) =>
-        `/api/comments/post/${postId}?limit=${limit}&page=${page}`,
-      providesTags: ["Comments"],
+      invalidatesTags: ["PostLikes"],
     }),
 
     // Thêm comment mới cho bài viết
@@ -61,7 +55,6 @@ export const socialPostsApi = baseApi.injectEndpoints({
           text,
         },
       }),
-      invalidatesTags: ["Comments"],
     }),
 
     // Trả lời một comment (reply)
@@ -77,7 +70,6 @@ export const socialPostsApi = baseApi.injectEndpoints({
           text,
         },
       }),
-      invalidatesTags: ["Comments"],
     }),
 
     createSocialPost: builder.mutation<any, Partial<SocialPost>>({
@@ -96,7 +88,6 @@ export const {
   useGetTrendingQuery,
   useGetPostLikesQuery,
   useToggleLikeMutation,
-  useGetCommentsQuery,
   useAddCommentMutation,
   useReplyCommentMutation,
   useCreateSocialPostMutation,
